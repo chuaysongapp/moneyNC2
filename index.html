@@ -1381,7 +1381,10 @@ input, select, textarea, button {
           <div class="settings-section-header">บัญชี</div>
           <div class="settings-row" onclick="openProfileSheet()">
             <div class="settings-row-left">
-              <div class="settings-row-icon" style="background:rgba(96,165,250,.15)">👤</div>
+              <div class="settings-row-icon" style="background:rgba(96,165,250,.15);overflow:hidden;padding:0">
+                <img id="settings-avatar" src="" alt="" style="width:34px;height:34px;object-fit:cover;display:none;border-radius:8px">
+                <span id="settings-avatar-icon" style="font-size:17px;width:34px;height:34px;display:flex;align-items:center;justify-content:center">👤</span>
+              </div>
               <div class="settings-row-text">
                 <h4 id="settings-name">กำลังโหลด...</h4>
                 <p id="settings-email">—</p>
@@ -1634,7 +1637,41 @@ input, select, textarea, button {
   </div>
 </div>
 
-<!-- Recurring Sheet -->
+<!-- Profile Sheet -->
+<div class="modal-overlay" id="modal-profile" onclick="closeModalIf(event,'modal-profile')">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title">โปรไฟล์</span>
+      <button class="sheet-close" onclick="closeModal('modal-profile')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <!-- Avatar -->
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="position:relative;display:inline-block">
+          <div id="profile-avatar-wrap" style="width:90px;height:90px;border-radius:50%;background:var(--bg3);border:3px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto">
+            <img id="profile-avatar-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
+            <span id="profile-avatar-icon">👤</span>
+          </div>
+          <button onclick="triggerAvatarUpload()" style="position:absolute;bottom:0;right:0;width:28px;height:28px;border-radius:50%;background:var(--accent);border:2px solid var(--bg2);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer">✎</button>
+        </div>
+        <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+        <div id="avatar-upload-status" style="font-size:12px;color:var(--text2);margin-top:8px"></div>
+      </div>
+
+      <!-- Display name -->
+      <div class="form-group">
+        <label class="form-label">ชื่อที่แสดง</label>
+        <input type="text" id="profile-name-input" class="form-input" placeholder="ชื่อของคุณ">
+      </div>
+      <div class="form-group">
+        <label class="form-label">อีเมล</label>
+        <input type="text" class="form-input" id="profile-email-display" disabled style="opacity:.6">
+      </div>
+      <button class="btn btn-primary" onclick="saveProfileName()">💾 บันทึกชื่อ</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-recurring" onclick="closeModalIf(event,'modal-recurring')">
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
@@ -1903,15 +1940,11 @@ window.pinDel = () => {
 
 async function verifyPIN(pin) {
   const stored = getPinHash();
-  // ถ้าไม่มี PIN เก็บไว้ → เข้าแอปได้เลย (ไม่ควรเกิดขึ้นแต่ safety net)
-  if (!stored) { enterApp(); return; }
+  if (!stored) { await afterPinSuccess(); return; }
   const h = await hashPIN(pin);
   if (h === stored) {
-    scheduleLock();
-    // ✅ เคลียร์ buffer ก่อนเข้าแอป
-    state.pinBuffer = '';
-    updatePinDots('pin-dots', 0);
-    await enterApp();
+    // ✅ เรียก afterPinSuccess เท่านั้น — ไม่เรียก enterApp โดยตรง
+    await afterPinSuccess();
   } else {
     updatePinDots('pin-dots', 4, true);
     setTimeout(() => {
@@ -2594,6 +2627,7 @@ function renderSettings() {
   if (u) {
     $('settings-email').textContent = u.email || '—';
     $('settings-name').textContent  = p?.display_name || u.user_metadata?.display_name || u.email?.split('@')[0] || 'ผู้ใช้';
+    updateSettingsAvatar(p?.avatar_url);
   }
   if (state.settings) {
     $('toggle-gpf').checked  = !!state.settings.gpf_enabled;
@@ -2613,7 +2647,121 @@ window.saveSettingToggle = async (field, val) => {
   renderSettings();
 };
 
-window.openProfileSheet = () => showToast('โปรไฟล์ (coming soon)', '');
+window.openProfileSheet = () => {
+  const u = state.session?.user;
+  const p = state.profile;
+  $('profile-name-input').value = p?.display_name || u?.user_metadata?.display_name || '';
+  $('profile-email-display').value = u?.email || '';
+  // โหลดรูป avatar ถ้ามี
+  const avatarUrl = p?.avatar_url;
+  if (avatarUrl) {
+    $('profile-avatar-img').src = avatarUrl;
+    $('profile-avatar-img').style.display = '';
+    $('profile-avatar-icon').style.display = 'none';
+  } else {
+    $('profile-avatar-img').style.display = 'none';
+    $('profile-avatar-icon').style.display = '';
+  }
+  $('avatar-upload-status').textContent = '';
+  openModal('modal-profile');
+};
+
+window.triggerAvatarUpload = () => $('avatar-file-input').click();
+
+window.uploadAvatar = async input => {
+  const file = input.files[0];
+  if (!file) return;
+
+  // เช็คขนาดไฟล์ (max 2MB)
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('รูปใหญ่เกิน 2MB', 'error');
+    return;
+  }
+
+  $('avatar-upload-status').textContent = '⏳ กำลังอัปโหลด...';
+
+  // Resize รูปก่อนอัปโหลด (max 300x300)
+  const resized = await resizeImage(file, 300);
+  const uid = state.session.user.id;
+  const filePath = `avatars/${uid}.jpg`;
+
+  // อัปโหลดขึ้น Supabase Storage
+  const { error: upErr } = await sb.storage
+    .from('avatars')
+    .upload(filePath, resized, {
+      contentType: 'image/jpeg',
+      upsert: true,
+    });
+
+  if (upErr) {
+    $('avatar-upload-status').textContent = '❌ ' + upErr.message;
+    // ถ้า bucket ไม่มี — แสดงวิธีสร้าง
+    if (upErr.message.includes('Bucket') || upErr.message.includes('not found')) {
+      $('avatar-upload-status').textContent = '❌ ยังไม่ได้สร้าง Storage Bucket — ดูคำแนะนำด้านล่าง';
+      showToast('ต้องสร้าง Storage Bucket ก่อน', 'error', 4000);
+    }
+    return;
+  }
+
+  // ดึง public URL
+  const { data: urlData } = sb.storage.from('avatars').getPublicUrl(filePath);
+  const avatarUrl = urlData.publicUrl + '?t=' + Date.now(); // cache bust
+
+  // บันทึกลง profiles
+  await sb.from('profiles').update({ avatar_url: avatarUrl }).eq('id', uid);
+  state.profile.avatar_url = avatarUrl;
+
+  // อัปเดต UI
+  $('profile-avatar-img').src = avatarUrl;
+  $('profile-avatar-img').style.display = '';
+  $('profile-avatar-icon').style.display = 'none';
+  updateSettingsAvatar(avatarUrl);
+  $('avatar-upload-status').textContent = '✅ อัปโหลดเรียบร้อย';
+  showToast('อัปเดตรูปแล้ว ✓', 'success');
+};
+
+function updateSettingsAvatar(url) {
+  if (url) {
+    $('settings-avatar').src = url + '?t=' + Date.now();
+    $('settings-avatar').style.display = '';
+    $('settings-avatar-icon').style.display = 'none';
+  } else {
+    $('settings-avatar').style.display = 'none';
+    $('settings-avatar-icon').style.display = 'flex';
+  }
+}
+
+async function resizeImage(file, maxSize) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > maxSize) { h = h * maxSize / w; w = maxSize; } }
+      else        { if (h > maxSize) { w = w * maxSize / h; h = maxSize; } }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(resolve, 'image/jpeg', 0.85);
+    };
+    img.src = url;
+  });
+}
+
+window.saveProfileName = async () => {
+  const name = $('profile-name-input').value.trim();
+  if (!name) return showToast('กรุณากรอกชื่อ', 'error');
+  const uid = state.session.user.id;
+  await Promise.all([
+    sb.from('profiles').update({ display_name: name }).eq('id', uid),
+    sb.auth.updateUser({ data: { display_name: name } }),
+  ]);
+  state.profile.display_name = name;
+  $('settings-name').textContent = name;
+  closeModal('modal-profile');
+  showToast('บันทึกชื่อแล้ว ✓', 'success');
+};
 window.openNotifSheet = () => showToast('การแจ้งเตือน (coming soon)', '');
 window.clearCache = async () => {
   // ส่งคำสั่งให้ SW ล้าง cache
@@ -2717,21 +2865,25 @@ window.closeModalIf = (e, id) => {
 };
 
 // ── Auth State Listener ───────────────────────
-// flag: ป้องกัน enterApp ถูกเรียกซ้ำระหว่างรอ PIN
-let _waitingForPin = false;
+// ใช้ appState machine กัน race condition
+// states: 'loading' | 'pin' | 'app' | 'auth'
+let appState = 'loading';
+
+function setAppState(s) {
+  appState = s;
+}
 
 sb.auth.onAuthStateChange(async (event, session) => {
   state.session = session;
 
-  // กรณีคลิกลิงก์ reset password จากอีเมล
+  // PASSWORD_RECOVERY — จัดการแยก
   if (event === 'PASSWORD_RECOVERY') {
+    setAppState('auth');
     hideLoading();
     showScreen('screen-auth');
     switchAuthTab('signin');
     const errEl = $('auth-error');
-    errEl.style.background = 'rgba(245,158,11,.1)';
-    errEl.style.borderColor = 'rgba(245,158,11,.3)';
-    errEl.style.color = 'var(--accent)';
+    errEl.style.cssText = 'background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:var(--accent)';
     errEl.textContent = 'กรุณาตั้งรหัสผ่านใหม่ด้านล่าง';
     errEl.className = 'auth-error show';
     $('si-pass').placeholder = 'รหัสผ่านใหม่ (8+ ตัว)';
@@ -2743,48 +2895,62 @@ sb.auth.onAuthStateChange(async (event, session) => {
       const { error } = await sb.auth.updateUser({ password: newPass });
       if (error) return showAuthError('บันทึกไม่สำเร็จ: ' + error.message);
       showToast('ตั้งรหัสผ่านใหม่เรียบร้อย ✓', 'success');
-      btn.textContent = 'เข้าสู่ระบบ';
-      btn.onclick = doSignIn;
+      btn.textContent = 'เข้าสู่ระบบ'; btn.onclick = doSignIn;
       $('si-pass').placeholder = '••••••••';
       errEl.className = 'auth-error';
-      _waitingForPin = false;
+      setAppState('app');
       await enterApp();
     };
     return;
   }
 
+  // ไม่มี session → หน้า auth
   if (!session) {
-    _waitingForPin = false;
+    setAppState('auth');
     hideLoading();
     showScreen('screen-auth');
     return;
   }
 
+  // SIGNED_IN = ล็อกอินใหม่สด → เข้าแอปได้เลย ไม่ต้อง PIN
   if (event === 'SIGNED_IN') {
-    // ล็อกอินใหม่สด — ไม่ต้องถาม PIN (เพิ่งยืนยันตัวตนด้วย password แล้ว)
-    _waitingForPin = false;
+    if (appState === 'app') return; // ป้องกัน fire ซ้ำ
+    setAppState('app');
     hideLoading();
     await enterApp();
     return;
   }
 
+  // INITIAL_SESSION = session ค้าง → เช็ค PIN
   if (event === 'INITIAL_SESSION') {
-    // session ค้างจากครั้งก่อน → ตรวจ PIN ก่อน
-    if (hasPIN() && !_waitingForPin) {
-      _waitingForPin = true;   // ✅ ตั้ง flag ก่อน — กัน enterApp จาก event อื่น
-      hideLoading();
+    // ถ้าอยู่ใน pin หรือ app แล้ว → ไม่ทำอะไรเด็ดขาด
+    if (appState === 'pin' || appState === 'app') return;
+
+    hideLoading();
+
+    if (hasPIN()) {
+      // ✅ set 'pin' ก่อนแสดงหน้า PIN
+      // enterApp จะถูกเรียกใน afterPinSuccess() เท่านั้น
+      setAppState('pin');
       showPinScreen();
-      // enterApp จะถูกเรียกใน verifyPIN() เมื่อ PIN ถูก
-    } else if (!hasPIN()) {
-      // ไม่มี PIN → เข้าแอปได้เลย
-      _waitingForPin = false;
-      hideLoading();
+    } else {
+      setAppState('app');
       await enterApp();
     }
-    // ถ้า _waitingForPin = true อยู่แล้ว = กำลังรอ PIN อยู่ → ไม่ทำอะไร
     return;
   }
+
+  // event อื่น (TOKEN_REFRESHED ฯลฯ) — ไม่ทำอะไรถ้าอยู่ใน app/pin แล้ว
 });
+
+// afterPinSuccess — เรียกจาก verifyPIN เมื่อ PIN ถูกต้อง
+async function afterPinSuccess() {
+  setAppState('app');
+  scheduleLock();
+  state.pinBuffer = '';
+  updatePinDots('pin-dots', 0);
+  await enterApp();
+}
 
 // ── Init ──────────────────────────────────────
 (async () => {
