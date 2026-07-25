@@ -1,0 +1,2706 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f1923">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MoneyNC">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>MoneyNC</title>
+
+<style>
+/* ── Reset & Variables ───────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Palette — dark navy financial theme */
+  --bg:        #0f1923;
+  --bg2:       #162030;
+  --bg3:       #1e2d3e;
+  --border:    #263548;
+  --text:      #e8edf2;
+  --text2:     #7a9bb8;
+  --text3:     #4a6680;
+
+  --income:    #22d3a0;  /* teal-green */
+  --saving:    #60a5fa;  /* sky-blue */
+  --expense:   #f87171;  /* coral-red */
+  --accent:    #f59e0b;  /* amber — สีทอง ธีมการเงิน */
+  --accent2:   #fbbf24;
+
+  --success:   #22d3a0;
+  --danger:    #f87171;
+  --warn:      #f59e0b;
+
+  --radius:    14px;
+  --radius-sm: 8px;
+  --shadow:    0 4px 24px rgba(0,0,0,.4);
+
+  /* Safe area */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+
+  /* Font */
+  --font: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+  overflow: hidden;
+}
+
+/* Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+
+input, select, textarea, button {
+  font-family: var(--font);
+  font-size: 16px; /* ป้องกัน iOS zoom */
+}
+
+/* ── Layout ──────────────────────────────────── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Screens ──────────────────────────────────── */
+.screen {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.screen.active { display: flex; }
+
+/* ── Auth Screen ──────────────────────────────── */
+#screen-auth {
+  background: var(--bg);
+  align-items: center;
+  justify-content: center;
+  padding: calc(24px + var(--sat)) 24px calc(24px + var(--sab));
+}
+
+.auth-logo {
+  text-align: center;
+  margin-bottom: 40px;
+}
+.auth-logo .logo-icon {
+  width: 72px; height: 72px;
+  background: linear-gradient(135deg, var(--accent), var(--income));
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px;
+  margin: 0 auto 16px;
+  box-shadow: 0 8px 32px rgba(245,158,11,.25);
+}
+.auth-logo h1 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -.5px;
+  color: var(--text);
+}
+.auth-logo p {
+  font-size: 14px;
+  color: var(--text2);
+  margin-top: 4px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+}
+
+.auth-tabs {
+  display: flex;
+  background: var(--bg2);
+  border-radius: var(--radius);
+  padding: 4px;
+  margin-bottom: 24px;
+}
+.auth-tab {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .2s;
+  border: none;
+  background: transparent;
+}
+.auth-tab.active {
+  background: var(--bg3);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+.form-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--bg2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 16px;
+  outline: none;
+  transition: border-color .2s;
+  -webkit-appearance: none;
+}
+.form-input:focus { border-color: var(--accent); }
+.form-input::placeholder { color: var(--text3); }
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active { transform: scale(.98); opacity: .9; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #0f1923;
+}
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-secondary {
+  background: var(--bg2);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+}
+.btn-danger {
+  background: rgba(248,113,113,.15);
+  color: var(--danger);
+  border: 1.5px solid rgba(248,113,113,.3);
+}
+
+.auth-error {
+  background: rgba(248,113,113,.1);
+  border: 1px solid rgba(248,113,113,.3);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--danger);
+  margin-bottom: 16px;
+  display: none;
+}
+.auth-error.show { display: block; }
+
+/* ── PIN Screen ──────────────────────────────── */
+#screen-pin {
+  align-items: center;
+  justify-content: center;
+  padding: calc(24px + var(--sat)) 24px calc(24px + var(--sab));
+  background: var(--bg);
+}
+.pin-header { text-align: center; margin-bottom: 40px; }
+.pin-avatar {
+  width: 64px; height: 64px;
+  background: var(--bg3);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  margin: 0 auto 12px;
+  border: 2px solid var(--border);
+}
+.pin-header h2 { font-size: 20px; font-weight: 600; }
+.pin-header p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+.pin-dots {
+  display: flex; gap: 16px; justify-content: center;
+  margin-bottom: 40px;
+}
+.pin-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--bg3);
+  border: 2px solid var(--border);
+  transition: all .15s;
+}
+.pin-dot.filled {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(245,158,11,.4);
+}
+.pin-dot.error {
+  background: var(--danger);
+  border-color: var(--danger);
+  animation: shake .3s ease;
+}
+
+@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-6px)}
+  75%{transform:translateX(6px)}
+}
+
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 280px;
+}
+.pin-key {
+  aspect-ratio: 1;
+  border: none;
+  background: var(--bg2);
+  border-radius: 50%;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: all .15s;
+  -webkit-tap-highlight-color: transparent;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--border);
+}
+.pin-key:active { background: var(--bg3); transform: scale(.94); }
+.pin-key.empty { background: transparent; border-color: transparent; pointer-events: none; }
+.pin-key.bio {
+  font-size: 26px;
+  background: rgba(34,211,160,.08);
+  border-color: rgba(34,211,160,.2);
+}
+.pin-key.del { font-size: 20px; }
+
+.pin-footer { margin-top: 24px; text-align: center; }
+.pin-link {
+  font-size: 13px;
+  color: var(--text2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Onboarding Screen ───────────────────────── */
+#screen-onboard {
+  padding: calc(32px + var(--sat)) 24px calc(24px + var(--sab));
+  overflow-y: auto;
+}
+.onboard-header { margin-bottom: 32px; }
+.onboard-header .step-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.onboard-header h2 { font-size: 24px; font-weight: 700; }
+.onboard-header p { font-size: 14px; color: var(--text2); margin-top: 6px; }
+
+.preset-cards { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+.preset-card {
+  padding: 20px;
+  background: var(--bg2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all .2s;
+  -webkit-tap-highlight-color: transparent;
+  display: flex; align-items: flex-start; gap: 16px;
+}
+.preset-card.selected {
+  border-color: var(--accent);
+  background: rgba(245,158,11,.06);
+}
+.preset-card:active { transform: scale(.99); }
+.preset-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.preset-card:nth-child(1) .preset-icon { background: rgba(96,165,250,.15); }
+.preset-card:nth-child(2) .preset-icon { background: rgba(34,211,160,.15); }
+.preset-card:nth-child(3) .preset-icon { background: rgba(245,158,11,.15); }
+.preset-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.preset-card p { font-size: 13px; color: var(--text2); line-height: 1.4; }
+.preset-check {
+  margin-left: auto;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+}
+.preset-card.selected .preset-check {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0f1923;
+}
+
+/* ── App Shell ───────────────────────────────── */
+#screen-app {
+  background: var(--bg);
+}
+
+.app-header {
+  padding: calc(14px + var(--sat)) 20px 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.header-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+.header-sub {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 1px;
+}
+.header-actions { display: flex; gap: 8px; }
+.icon-btn {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all .15s;
+}
+.icon-btn:active { background: var(--bg3); }
+
+.tab-content-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 16px calc(8px + var(--sab));
+}
+
+/* ── Tab Bar ──────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding-bottom: calc(6px + var(--sab));
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+  flex-shrink: 0;
+}
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 4px 6px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all .15s;
+  border: none;
+  background: none;
+  color: var(--text3);
+}
+.tab-item.active { color: var(--accent); }
+.tab-icon { font-size: 22px; line-height: 1; }
+.tab-label { font-size: 10px; font-weight: 500; }
+
+/* ── Tab Panels ──────────────────────────────── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Summary Cards (แท็บ "เดือนนี้") ─────────── */
+.month-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  background: var(--bg2);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+.month-picker-label { font-size: 15px; font-weight: 600; }
+.month-nav {
+  background: none; border: none;
+  color: var(--text2); font-size: 20px;
+  cursor: pointer; padding: 4px 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.summary-card {
+  background: var(--bg2);
+  border-radius: var(--radius);
+  padding: 16px;
+  border: 1px solid var(--border);
+}
+.summary-card.wide {
+  grid-column: 1 / -1;
+}
+.card-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+.card-amount {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -.5px;
+}
+.card-amount.income  { color: var(--income); }
+.card-amount.saving  { color: var(--saving); }
+.card-amount.expense { color: var(--expense); }
+.card-amount.balance { color: var(--text); }
+.card-amount.positive { color: var(--income); }
+.card-amount.negative { color: var(--expense); }
+
+/* Accumulate cards */
+.accum-row {
+  display: flex; gap: 10px; margin-bottom: 16px;
+}
+.accum-card {
+  flex: 1;
+  background: var(--bg2);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.accum-card:active { border-color: var(--accent); }
+.accum-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+.accum-amount { font-size: 18px; font-weight: 700; color: var(--saving); }
+.accum-hint { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+/* Recent transactions list */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.section-title { font-size: 13px; font-weight: 600; color: var(--text2); }
+.section-link {
+  font-size: 12px;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tx-list { display: flex; flex-direction: column; gap: 8px; }
+.tx-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg2);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color .2s;
+}
+.tx-item:active { border-color: var(--border); background: var(--bg3); }
+.tx-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tx-dot.income  { background: var(--income); }
+.tx-dot.saving  { background: var(--saving); }
+.tx-dot.expense { background: var(--expense); }
+.tx-info { flex: 1; min-width: 0; }
+.tx-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tx-date { font-size: 12px; color: var(--text2); }
+.tx-amount { font-size: 15px; font-weight: 600; text-align: right; white-space: nowrap; }
+.tx-amount.income  { color: var(--income); }
+.tx-amount.saving  { color: var(--saving); }
+.tx-amount.expense { color: var(--expense); }
+
+/* ── Form (แท็บ "บันทึก") ──────────────────── */
+.record-form { display: flex; flex-direction: column; gap: 16px; }
+
+.type-selector {
+  display: flex;
+  background: var(--bg2);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  gap: 4px;
+}
+.type-btn {
+  flex: 1; padding: 10px 4px;
+  border: none; border-radius: 6px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .2s;
+  -webkit-tap-highlight-color: transparent;
+  background: transparent;
+  color: var(--text2);
+}
+.type-btn.income.active  { background: rgba(34,211,160,.2);  color: var(--income); }
+.type-btn.saving.active  { background: rgba(96,165,250,.2);  color: var(--saving); }
+.type-btn.expense.active { background: rgba(248,113,113,.2); color: var(--expense); }
+
+.amount-input-wrap { position: relative; }
+.amount-prefix {
+  position: absolute;
+  left: 14px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text2);
+}
+.amount-input {
+  width: 100%;
+  padding: 16px 16px 16px 36px;
+  background: var(--bg2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 700;
+  outline: none;
+  -webkit-appearance: none;
+  letter-spacing: -.5px;
+}
+.amount-input:focus { border-color: var(--accent); }
+.amount-input::placeholder { color: var(--text3); font-size: 18px; font-weight: 400; }
+
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.cat-chip {
+  padding: 10px 4px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+  background: var(--bg2);
+  color: var(--text2);
+  -webkit-tap-highlight-color: transparent;
+}
+.cat-chip:active { transform: scale(.97); }
+.cat-chip.selected.income  { border-color: var(--income);  background: rgba(34,211,160,.12);  color: var(--income); }
+.cat-chip.selected.saving  { border-color: var(--saving);  background: rgba(96,165,250,.12);  color: var(--saving); }
+.cat-chip.selected.expense { border-color: var(--expense); background: rgba(248,113,113,.12); color: var(--expense); }
+
+.date-input {
+  width: 100%;
+  padding: 13px 16px;
+  background: var(--bg2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 16px;
+  outline: none;
+  -webkit-appearance: none;
+  color-scheme: dark;
+}
+.date-input:focus { border-color: var(--accent); }
+
+.note-input {
+  width: 100%;
+  padding: 13px 16px;
+  background: var(--bg2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 16px;
+  outline: none;
+  resize: none;
+  -webkit-appearance: none;
+}
+.note-input:focus { border-color: var(--accent); }
+.note-input::placeholder { color: var(--text3); }
+
+/* ── History Tab ──────────────────────────────── */
+.history-group { margin-bottom: 20px; }
+.history-date-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  padding: 4px 0 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+/* ── Settings Tab ─────────────────────────────── */
+.settings-section {
+  background: var(--bg2);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+.settings-section-header {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s;
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-row:active { background: var(--bg3); }
+.settings-row-left { display: flex; align-items: center; gap: 12px; }
+.settings-row-icon {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+}
+.settings-row-text h4 { font-size: 15px; font-weight: 500; }
+.settings-row-text p { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.settings-row-right { display: flex; align-items: center; gap: 8px; color: var(--text3); }
+
+/* ── Modal / Bottom Sheet ─────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.6);
+  z-index: 100;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.show { display: flex; }
+
+.bottom-sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg2);
+  border-radius: 20px 20px 0 0;
+  padding: 0 0 calc(16px + var(--sab));
+  max-height: 90dvh;
+  overflow-y: auto;
+  animation: slideUp .25s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.sheet-handle {
+  width: 36px; height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 12px auto 0;
+}
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.sheet-title { font-size: 17px; font-weight: 700; }
+.sheet-close {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--bg3);
+  border: none;
+  color: var(--text2);
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.sheet-body { padding: 20px; }
+
+/* ── Toast ────────────────────────────────────── */
+#toast {
+  position: fixed;
+  bottom: calc(80px + var(--sab));
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 200;
+  opacity: 0;
+  transition: all .3s;
+  pointer-events: none;
+  max-width: calc(100% - 40px);
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+#toast.success { border-color: var(--income); color: var(--income); }
+#toast.error   { border-color: var(--danger); color: var(--danger); }
+
+/* ── Loading Overlay ─────────────────────────── */
+#loading {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  transition: opacity .3s;
+}
+#loading.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading p { font-size: 14px; color: var(--text2); }
+
+/* ── Debtors Tab ──────────────────────────────── */
+.debtor-item {
+  background: var(--bg2);
+  border-radius: var(--radius);
+  padding: 16px;
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.debtor-item.paid { opacity: .5; }
+.debtor-row { display: flex; justify-content: space-between; align-items: flex-start; }
+.debtor-name { font-size: 16px; font-weight: 600; }
+.debtor-amount { font-size: 18px; font-weight: 700; color: var(--expense); }
+.debtor-amount.paid { color: var(--income); }
+.debtor-meta { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.debtor-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+.debtor-badge.unpaid { background: rgba(248,113,113,.15); color: var(--expense); }
+.debtor-badge.paid   { background: rgba(34,211,160,.15);  color: var(--income); }
+
+/* ── Summary Tab ──────────────────────────────── */
+.summary-bar-wrap { margin-bottom: 20px; }
+.bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.bar-track {
+  height: 8px;
+  background: var(--bg3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width .5s ease;
+}
+
+/* ── Fab Button ─────────────────────────────── */
+.fab {
+  position: fixed;
+  right: calc(20px + var(--sar));
+  bottom: calc(80px + var(--sab));
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none;
+  font-size: 28px;
+  color: #0f1923;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(245,158,11,.4);
+  cursor: pointer;
+  z-index: 50;
+  transition: all .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.fab:active { transform: scale(.9); }
+
+/* ── Empty state ─────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text2);
+}
+.empty-icon { font-size: 48px; margin-bottom: 12px; opacity: .5; }
+.empty-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+.empty-desc { font-size: 13px; line-height: 1.5; }
+
+/* ── Category manager ─────────────────────────── */
+.cat-manage-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.cat-manage-item:last-child { border-bottom: none; }
+.cat-locked { font-size: 14px; color: var(--text3); }
+.cat-manage-name { flex: 1; font-size: 15px; }
+.cat-manage-actions { display: flex; gap: 8px; }
+.cat-action-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  -webkit-tap-highlight-color: transparent;
+  opacity: .7;
+  transition: opacity .15s;
+}
+.cat-action-btn:active { opacity: 1; }
+
+/* ── Utility ─────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
+}
+.text-center { text-align: center; }
+.text-sm { font-size: 13px; }
+.text-muted { color: var(--text2); }
+.mt-8  { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mb-16 { margin-bottom: 16px; }
+.gap-8  { gap: 8px; }
+
+/* ── Recurring Tab ───────────────────────────── */
+.recurring-item {
+  background: var(--bg2);
+  border-radius: var(--radius);
+  padding: 16px;
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.recurring-day {
+  width: 42px; height: 42px;
+  border-radius: 10px;
+  background: var(--bg3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700;
+  flex-shrink: 0;
+}
+.recurring-info { flex: 1; }
+.recurring-name { font-size: 15px; font-weight: 500; }
+.recurring-meta { font-size: 12px; color: var(--text2); }
+.recurring-amount { font-size: 16px; font-weight: 700; }
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  width: 44px; height: 26px;
+  flex-shrink: 0;
+}
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-track {
+  position: absolute; inset: 0;
+  background: var(--bg3);
+  border-radius: 13px;
+  cursor: pointer;
+  transition: background .2s;
+  border: 1px solid var(--border);
+}
+.toggle input:checked + .toggle-track { background: var(--accent); border-color: var(--accent); }
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  left: 3px; top: 3px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--text2);
+  transition: transform .2s, background .2s;
+}
+.toggle input:checked + .toggle-track::after {
+  transform: translateX(18px);
+  background: #0f1923;
+}
+
+/* ── PIN Setup (modal content) ────────────────── */
+.pin-setup-dots {
+  display: flex; gap: 12px; justify-content: center;
+  margin: 20px 0;
+}
+.pin-setup-dots .pin-dot { width: 12px; height: 12px; }
+.pin-setup-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.pin-setup-keypad .pin-key {
+  width: 100%; aspect-ratio: 1.4;
+  border-radius: var(--radius-sm);
+}
+
+/* Responsive scrollbar */
+::-webkit-scrollbar { width: 0; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     Loading Overlay
+════════════════════════════════════════════════ -->
+<div id="loading">
+  <div style="font-size:48px">💰</div>
+  <div class="spinner"></div>
+  <p>กำลังโหลด...</p>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════════
+     App Container
+════════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- ── Screen: Auth ────────────────────────── -->
+  <div id="screen-auth" class="screen">
+    <div class="auth-logo">
+      <div class="logo-icon">💰</div>
+      <h1>MoneyNC</h1>
+      <p>บันทึกรายรับ-รายจ่าย ส่วนตัว</p>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-signin" onclick="switchAuthTab('signin')">เข้าสู่ระบบ</button>
+        <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">สมัครสมาชิก</button>
+      </div>
+
+      <div id="auth-error" class="auth-error"></div>
+
+      <!-- Sign In -->
+      <div id="form-signin">
+        <div class="form-group">
+          <label class="form-label">อีเมล</label>
+          <input type="email" id="si-email" class="form-input" placeholder="email@example.com"
+                 inputmode="email" autocomplete="email" autocapitalize="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">รหัสผ่าน</label>
+          <input type="password" id="si-pass" class="form-input" placeholder="••••••••"
+                 autocomplete="current-password" enterkeyhint="done" onkeydown="if(event.key==='Enter')doSignIn()">
+        </div>
+        <button class="btn btn-primary" id="btn-signin" onclick="doSignIn()">
+          <span>เข้าสู่ระบบ</span>
+        </button>
+      </div>
+
+      <!-- Sign Up -->
+      <div id="form-signup" style="display:none">
+        <div class="form-group">
+          <label class="form-label">ชื่อที่แสดง</label>
+          <input type="text" id="su-name" class="form-input" placeholder="ชื่อของคุณ"
+                 autocomplete="name" autocapitalize="words">
+        </div>
+        <div class="form-group">
+          <label class="form-label">อีเมล</label>
+          <input type="email" id="su-email" class="form-input" placeholder="email@example.com"
+                 inputmode="email" autocomplete="email" autocapitalize="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">รหัสผ่าน (อย่างน้อย 8 ตัว)</label>
+          <input type="password" id="su-pass" class="form-input" placeholder="••••••••"
+                 autocomplete="new-password" enterkeyhint="done" onkeydown="if(event.key==='Enter')doSignUp()">
+        </div>
+        <button class="btn btn-primary" id="btn-signup" onclick="doSignUp()">
+          <span>สมัครสมาชิก</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen: PIN ─────────────────────────── -->
+  <div id="screen-pin" class="screen">
+    <div class="pin-header">
+      <div class="pin-avatar">🔐</div>
+      <h2 id="pin-title">ใส่ PIN</h2>
+      <p id="pin-sub" class="text-muted">4 หลัก เพื่อเข้าใช้งาน</p>
+    </div>
+
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+    </div>
+
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key bio" id="pin-bio-btn" onclick="doBioAuth()" style="display:none">🪪</button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+    </div>
+
+    <div class="pin-footer">
+      <button class="pin-link" onclick="pinSignOut()">ออกจากระบบ</button>
+    </div>
+  </div>
+
+  <!-- ── Screen: Onboarding ──────────────────── -->
+  <div id="screen-onboard" class="screen">
+    <div class="onboard-header">
+      <div class="step-label">ยินดีต้อนรับ</div>
+      <h2>คุณทำงานแบบไหน?</h2>
+      <p>เลือกเพื่อตั้งค่าหมวดหมู่ให้เหมาะกับคุณ แก้ไขได้ทีหลังในหน้าตั้งค่า</p>
+    </div>
+
+    <div class="preset-cards">
+      <div class="preset-card" id="preset-government" onclick="selectPreset('government')">
+        <div class="preset-icon">🏛️</div>
+        <div style="flex:1">
+          <h3>ข้าราชการ / รัฐวิสาหกิจ</h3>
+          <p>มีระบบ กบข. และสหกรณ์ออมทรัพย์</p>
+        </div>
+        <div class="preset-check"></div>
+      </div>
+      <div class="preset-card" id="preset-private" onclick="selectPreset('private')">
+        <div class="preset-icon">🏢</div>
+        <div style="flex:1">
+          <h3>พนักงานเอกชน</h3>
+          <p>ไม่มี กบข./สหกรณ์ ใช้หมวดหมู่ทั่วไป</p>
+        </div>
+        <div class="preset-check"></div>
+      </div>
+      <div class="preset-card" id="preset-blank" onclick="selectPreset('blank')">
+        <div class="preset-icon">✏️</div>
+        <div style="flex:1">
+          <h3>เริ่มจากศูนย์</h3>
+          <p>ตั้งค่าหมวดหมู่เองทั้งหมด</p>
+        </div>
+        <div class="preset-check"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="btn-onboard" onclick="doOnboard()" disabled>
+      เริ่มใช้งาน →
+    </button>
+  </div>
+
+  <!-- ── Screen: Main App ─────────────────────── -->
+  <div id="screen-app" class="screen">
+
+    <!-- Header -->
+    <div class="app-header">
+      <div>
+        <div class="header-title" id="header-title">เดือนนี้</div>
+        <div class="header-sub" id="header-sub">กำลังโหลด...</div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" onclick="openNotifSheet()" title="การแจ้งเตือน">🔔</button>
+        <button class="icon-btn" onclick="openProfileSheet()" title="โปรไฟล์">👤</button>
+      </div>
+    </div>
+
+    <!-- Tab content -->
+    <div class="tab-content-area" id="tab-content-area">
+
+      <!-- แท็บ เดือนนี้ -->
+      <div class="tab-panel active" id="panel-home">
+        <div class="month-picker">
+          <button class="month-nav" onclick="changeMonth(-1)">‹</button>
+          <span class="month-picker-label" id="month-label">—</span>
+          <button class="month-nav" onclick="changeMonth(1)">›</button>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-card">
+            <div class="card-label">รายรับ</div>
+            <div class="card-amount income" id="sum-income">฿0.00</div>
+          </div>
+          <div class="summary-card">
+            <div class="card-label">เงินออม</div>
+            <div class="card-amount saving" id="sum-saving">฿0.00</div>
+          </div>
+          <div class="summary-card">
+            <div class="card-label">รายจ่าย</div>
+            <div class="card-amount expense" id="sum-expense">฿0.00</div>
+          </div>
+          <div class="summary-card">
+            <div class="card-label">คงเหลือ</div>
+            <div class="card-amount balance" id="sum-balance">฿0.00</div>
+          </div>
+        </div>
+
+        <!-- การ์ดสะสม (แสดงเฉพาะเมื่อ settings เปิด) -->
+        <div class="accum-row" id="accum-row" style="display:none">
+          <div class="accum-card" id="card-coop" onclick="editAccumBase('coop')">
+            <div class="accum-label">หุ้นสหกรณ์</div>
+            <div class="accum-amount" id="accum-coop">฿0.00</div>
+            <div class="accum-hint">แตะเพื่อแก้ยอดตั้งต้น</div>
+          </div>
+          <div class="accum-card" id="card-gpf" onclick="editAccumBase('gpf')">
+            <div class="accum-label">กบข.</div>
+            <div class="accum-amount" id="accum-gpf">฿0.00</div>
+            <div class="accum-hint">แตะเพื่อแก้ยอดตั้งต้น</div>
+          </div>
+        </div>
+
+        <!-- รายการล่าสุด -->
+        <div class="section-header">
+          <span class="section-title">รายการล่าสุด</span>
+          <button class="section-link" onclick="switchTab('history')">ดูทั้งหมด</button>
+        </div>
+        <div class="tx-list" id="recent-list">
+          <div class="empty-state">
+            <div class="empty-icon">📝</div>
+            <div class="empty-title">ยังไม่มีรายการ</div>
+            <div class="empty-desc">กดปุ่ม + ด้านล่างเพื่อบันทึก</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- แท็บ บันทึก -->
+      <div class="tab-panel" id="panel-record">
+        <div class="record-form">
+          <div class="type-selector">
+            <button class="type-btn income active" onclick="setType('income')">💚 รายรับ</button>
+            <button class="type-btn saving" onclick="setType('saving')">💙 เงินออม</button>
+            <button class="type-btn expense" onclick="setType('expense')">❤️ รายจ่าย</button>
+          </div>
+
+          <div>
+            <div class="form-label">จำนวนเงิน (บาท)</div>
+            <div class="amount-input-wrap">
+              <span class="amount-prefix">฿</span>
+              <input type="text" id="rec-amount" class="amount-input"
+                     inputmode="decimal" placeholder="0.00" enterkeyhint="done"
+                     onfocus="amountFocus(this)" onblur="amountBlur(this)">
+            </div>
+          </div>
+
+          <div>
+            <div class="form-label">หมวดหมู่</div>
+            <div class="cat-grid" id="cat-grid">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <div>
+            <div class="form-label">วันที่</div>
+            <input type="date" id="rec-date" class="date-input">
+          </div>
+
+          <div>
+            <div class="form-label">หมายเหตุ (ไม่บังคับ)</div>
+            <textarea id="rec-note" class="note-input" rows="2" placeholder="เพิ่มหมายเหตุ..."></textarea>
+          </div>
+
+          <button class="btn btn-primary" id="btn-save-record" onclick="saveRecord()">
+            💾 บันทึกรายการ
+          </button>
+
+          <!-- Edit mode -->
+          <button class="btn btn-danger" id="btn-delete-record" style="display:none" onclick="deleteRecord()">
+            🗑 ลบรายการนี้
+          </button>
+        </div>
+      </div>
+
+      <!-- แท็บ ประวัติ -->
+      <div class="tab-panel" id="panel-history">
+        <div class="month-picker">
+          <button class="month-nav" onclick="changeMonth(-1)">‹</button>
+          <span class="month-picker-label" id="history-month-label">—</span>
+          <button class="month-nav" onclick="changeMonth(1)">›</button>
+        </div>
+        <div id="history-list">
+          <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <div class="empty-title">ยังไม่มีรายการ</div>
+            <div class="empty-desc">รายการที่บันทึกจะแสดงที่นี่</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- แท็บ ประจำ -->
+      <div class="tab-panel" id="panel-recurring">
+        <div id="recurring-list">
+          <div class="empty-state">
+            <div class="empty-icon">🔄</div>
+            <div class="empty-title">ยังไม่มีรายการประจำ</div>
+            <div class="empty-desc">กดปุ่ม + เพื่อเพิ่มรายการที่ทำซ้ำทุกเดือน</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- แท็บ ลูกหนี้ -->
+      <div class="tab-panel" id="panel-debtors">
+        <div id="debtor-list">
+          <div class="empty-state">
+            <div class="empty-icon">🤝</div>
+            <div class="empty-title">ไม่มีลูกหนี้</div>
+            <div class="empty-desc">กดปุ่ม + เพื่อบันทึกการให้ยืมเงิน</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- แท็บ สรุป -->
+      <div class="tab-panel" id="panel-summary">
+        <div class="month-picker">
+          <button class="month-nav" onclick="changeMonth(-1)">‹</button>
+          <span class="month-picker-label" id="summary-month-label">—</span>
+          <button class="month-nav" onclick="changeMonth(1)">›</button>
+        </div>
+
+        <div class="summary-grid" style="margin-bottom:20px">
+          <div class="summary-card">
+            <div class="card-label">รายรับ</div>
+            <div class="card-amount income" id="sumtab-income">฿0.00</div>
+          </div>
+          <div class="summary-card">
+            <div class="card-label">เงินออม</div>
+            <div class="card-amount saving" id="sumtab-saving">฿0.00</div>
+          </div>
+          <div class="summary-card">
+            <div class="card-label">รายจ่าย</div>
+            <div class="card-amount expense" id="sumtab-expense">฿0.00</div>
+          </div>
+          <div class="summary-card">
+            <div class="card-label">คงเหลือ</div>
+            <div class="card-amount" id="sumtab-balance">฿0.00</div>
+          </div>
+        </div>
+
+        <!-- Top expense categories -->
+        <div class="section-header">
+          <span class="section-title">รายจ่ายตามหมวด</span>
+        </div>
+        <div id="expense-breakdown"></div>
+
+        <div class="divider"></div>
+        <div class="section-header">
+          <span class="section-title">ข้อมูล</span>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-secondary" style="flex:1" onclick="exportCSV()">📤 Export CSV</button>
+        </div>
+      </div>
+
+      <!-- แท็บ ตั้งค่า -->
+      <div class="tab-panel" id="panel-settings">
+
+        <div class="settings-section">
+          <div class="settings-section-header">บัญชี</div>
+          <div class="settings-row" onclick="openProfileSheet()">
+            <div class="settings-row-left">
+              <div class="settings-row-icon" style="background:rgba(96,165,250,.15)">👤</div>
+              <div class="settings-row-text">
+                <h4 id="settings-name">กำลังโหลด...</h4>
+                <p id="settings-email">—</p>
+              </div>
+            </div>
+            <div class="settings-row-right">›</div>
+          </div>
+          <div class="settings-row" onclick="doSignOut()">
+            <div class="settings-row-left">
+              <div class="settings-row-icon" style="background:rgba(248,113,113,.15)">🚪</div>
+              <div class="settings-row-text">
+                <h4>ออกจากระบบ</h4>
+              </div>
+            </div>
+            <div class="settings-row-right">›</div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-header">หมวดหมู่</div>
+          <div class="settings-row" onclick="openCatManager('income')">
+            <div class="settings-row-left">
+              <div class="settings-row-icon" style="background:rgba(34,211,160,.15)">💚</div>
+              <div class="settings-row-text"><h4>รายรับ</h4><p id="cat-count-income">0 หมวด</p></div>
+            </div>
+            <div class="settings-row-right">›</div>
+          </div>
+          <div class="settings-row" onclick="openCatManager('saving')">
+            <div class="settings-row-left">
+              <div class="settings-row-icon" style="background:rgba(96,165,250,.15)">💙</div>
+              <div class="settings-row-text"><h4>เงินออม</h4><p id="cat-count-saving">0 หมวด</p></div>
+            </div>
+            <div class="settings-row-right">›</div>
+          </div>
+          <div class="settings-row" onclick="openCatManager('expense')">
+            <div class="settings-row-left">
+              <div class="settings-row-icon" style="background:rgba(248,113,113,.15)">❤️</div>
+              <div class="settings-row-text"><h4>รายจ่าย</h4><p id="cat-count-expense">0 หมวด</p></div>
+            </div>
+            <div class="settings-row-right">›</div>
+          </div>
+        </div>
+
+        <div class="settings-section" id="settings-calc" style="display:none">
+          <div class="settings-section-header">การคำนวณพิเศษ</div>
+          <div class="settings-row">
+            <div class="settings-row-left">
+              <div class="settings-row-icon" style="background:rgba(96,165,250,.15)">🏦</div>
+              <div class="settings-row-text"><h4>กบข. อัตโนมัติ</h4><p id="gpf-rate-label">5%</p></div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="toggle-gpf" onchange="saveSettingToggle('gpf_enabled',this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-left">
+              <div class="settings-row-icon" style="background:rgba(34,211,160,.15)">🤝</div>
+              <div class="settings-row-text"><h4>สหกรณ์</h4><p>การ์ดสะสมหุ้น</p></div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="toggle-coop" onchange="saveSettingToggle('coop_enabled',this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-header">ความปลอดภัย</div>
+          <div class="settings-row" onclick="openPinSetup()">
+            <div class="settings-row-left">
+              <div class="settings-row-icon" style="background:rgba(245,158,11,.15)">🔐</div>
+              <div class="settings-row-text"><h4>ตั้ง PIN</h4><p id="pin-status">กำลังตรวจสอบ...</p></div>
+            </div>
+            <div class="settings-row-right">›</div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-header">แอปพลิเคชัน</div>
+          <div class="settings-row" onclick="clearCache()">
+            <div class="settings-row-left">
+              <div class="settings-row-icon" style="background:rgba(122,155,184,.15)">🗂️</div>
+              <div class="settings-row-text"><h4>ล้างแคช</h4><p>อัปเดตข้อมูลจากเซิร์ฟเวอร์</p></div>
+            </div>
+            <div class="settings-row-right">›</div>
+          </div>
+        </div>
+
+        <p class="text-center text-sm text-muted mt-16">MoneyNC v2.0 · Supabase Edition</p>
+      </div>
+
+    </div><!-- /tab-content-area -->
+
+    <!-- Tab Bar -->
+    <nav class="tab-bar">
+      <button class="tab-item active" id="tab-home" onclick="switchTab('home')">
+        <span class="tab-icon">🏠</span>
+        <span class="tab-label">เดือนนี้</span>
+      </button>
+      <button class="tab-item" id="tab-history" onclick="switchTab('history')">
+        <span class="tab-icon">📋</span>
+        <span class="tab-label">ประวัติ</span>
+      </button>
+      <button class="tab-item" id="tab-recurring" onclick="switchTab('recurring')">
+        <span class="tab-icon">🔄</span>
+        <span class="tab-label">ประจำ</span>
+      </button>
+      <button class="tab-item" id="tab-debtors" onclick="switchTab('debtors')">
+        <span class="tab-icon">🤝</span>
+        <span class="tab-label">ลูกหนี้</span>
+      </button>
+      <button class="tab-item" id="tab-summary" onclick="switchTab('summary')">
+        <span class="tab-icon">📊</span>
+        <span class="tab-label">สรุป</span>
+      </button>
+      <button class="tab-item" id="tab-settings" onclick="switchTab('settings')">
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-label">ตั้งค่า</span>
+      </button>
+    </nav>
+
+    <!-- FAB -->
+    <button class="fab" id="fab-btn" onclick="openFab()">＋</button>
+
+  </div><!-- /screen-app -->
+
+</div><!-- /app -->
+
+<!-- ══════════════════════════════════════════════
+     Modals / Bottom Sheets
+════════════════════════════════════════════════ -->
+
+<!-- Category Manager Sheet -->
+<div class="modal-overlay" id="modal-catmanager" onclick="closeModalIf(event,'modal-catmanager')">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title" id="catmgr-title">จัดการหมวดหมู่</span>
+      <button class="sheet-close" onclick="closeModal('modal-catmanager')">✕</button>
+    </div>
+    <div class="sheet-body" style="padding:0">
+      <div id="catmgr-list"></div>
+      <div style="padding:16px">
+        <div class="form-group" style="display:flex;gap:8px">
+          <input type="text" id="catmgr-input" class="form-input" placeholder="ชื่อหมวดหมู่ใหม่" style="flex:1">
+          <button class="btn btn-primary" style="width:auto;padding:14px 16px" onclick="addCategory()">＋</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PIN Setup Sheet -->
+<div class="modal-overlay" id="modal-pin-setup" onclick="closeModalIf(event,'modal-pin-setup')">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title" id="pin-setup-title">ตั้ง PIN ใหม่</span>
+      <button class="sheet-close" onclick="closeModal('modal-pin-setup')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <p class="text-muted text-sm text-center" id="pin-setup-step-label">กรอก PIN 4 หลัก</p>
+      <div class="pin-setup-dots" id="pin-setup-dots">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+      <div class="pin-setup-keypad">
+        <button class="pin-key" onclick="pinSetupKey('1')">1</button>
+        <button class="pin-key" onclick="pinSetupKey('2')">2</button>
+        <button class="pin-key" onclick="pinSetupKey('3')">3</button>
+        <button class="pin-key" onclick="pinSetupKey('4')">4</button>
+        <button class="pin-key" onclick="pinSetupKey('5')">5</button>
+        <button class="pin-key" onclick="pinSetupKey('6')">6</button>
+        <button class="pin-key" onclick="pinSetupKey('7')">7</button>
+        <button class="pin-key" onclick="pinSetupKey('8')">8</button>
+        <button class="pin-key" onclick="pinSetupKey('9')">9</button>
+        <button class="pin-key empty"></button>
+        <button class="pin-key" onclick="pinSetupKey('0')">0</button>
+        <button class="pin-key del" onclick="pinSetupDel()">⌫</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Accum Sheet -->
+<div class="modal-overlay" id="modal-accum" onclick="closeModalIf(event,'modal-accum')">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title" id="accum-title">แก้ยอดตั้งต้น</span>
+      <button class="sheet-close" onclick="closeModal('modal-accum')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="form-group">
+        <label class="form-label">ยอดตั้งต้น (บาท)</label>
+        <input type="text" id="accum-input" class="form-input" inputmode="decimal"
+               onfocus="amountFocus(this)" onblur="amountBlur(this)">
+      </div>
+      <button class="btn btn-primary" onclick="saveAccumBase()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Transaction Detail / Edit Sheet -->
+<div class="modal-overlay" id="modal-tx" onclick="closeModalIf(event,'modal-tx')">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title">รายละเอียด</span>
+      <button class="sheet-close" onclick="closeModal('modal-tx')">✕</button>
+    </div>
+    <div class="sheet-body" id="tx-detail-body">—</div>
+  </div>
+</div>
+
+<!-- Debtor Sheet -->
+<div class="modal-overlay" id="modal-debtor" onclick="closeModalIf(event,'modal-debtor')">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title" id="debtor-sheet-title">เพิ่มลูกหนี้</span>
+      <button class="sheet-close" onclick="closeModal('modal-debtor')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="form-group">
+        <label class="form-label">ชื่อ</label>
+        <input type="text" id="debt-name" class="form-input" placeholder="ชื่อผู้ยืม">
+      </div>
+      <div class="form-group">
+        <label class="form-label">จำนวนเงิน (บาท)</label>
+        <input type="text" id="debt-amount" class="form-input" inputmode="decimal"
+               onfocus="amountFocus(this)" onblur="amountBlur(this)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">วันที่</label>
+        <input type="date" id="debt-date" class="date-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">หมายเหตุ</label>
+        <input type="text" id="debt-note" class="form-input" placeholder="รายละเอียด">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1" onclick="saveDebtor()">บันทึก</button>
+        <button class="btn btn-danger" id="btn-paid" style="flex:1;display:none" onclick="markDebtorPaid()">✅ รับเงินคืนแล้ว</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recurring Sheet -->
+<div class="modal-overlay" id="modal-recurring" onclick="closeModalIf(event,'modal-recurring')">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title" id="recurring-sheet-title">เพิ่มรายการประจำ</span>
+      <button class="sheet-close" onclick="closeModal('modal-recurring')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="form-group">
+        <label class="form-label">ประเภท</label>
+        <div class="type-selector" style="margin-bottom:0">
+          <button class="type-btn income active" id="rec-type-income" onclick="setRecType('income')">💚 รายรับ</button>
+          <button class="type-btn saving" id="rec-type-saving" onclick="setRecType('saving')">💙 เงินออม</button>
+          <button class="type-btn expense" id="rec-type-expense" onclick="setRecType('expense')">❤️ รายจ่าย</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">หมวดหมู่</label>
+        <select id="rec-cat" class="form-input">
+          <option value="">เลือกหมวด</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">จำนวนเงิน (บาท)</label>
+        <input type="text" id="rec-rec-amount" class="form-input" inputmode="decimal"
+               onfocus="amountFocus(this)" onblur="amountBlur(this)">
+      </div>
+      <div style="display:flex;gap:10px">
+        <div class="form-group" style="flex:1">
+          <label class="form-label">วันที่ (ของเดือน)</label>
+          <input type="number" id="rec-day" class="form-input" min="1" max="31" placeholder="25">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label">เริ่มตั้งแต่</label>
+          <input type="month" id="rec-startym" class="form-input" style="color-scheme:dark">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">หมายเหตุ</label>
+        <input type="text" id="rec-rec-note" class="form-input" placeholder="รายละเอียด">
+      </div>
+      <button class="btn btn-primary" onclick="saveRecurring()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     JavaScript
+════════════════════════════════════════════════ -->
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+// ── Config ────────────────────────────────────
+const SUPABASE_URL = 'https://igafapvevnqufyqtjbyu.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_r3KS1vmOeSzpD1I8JawEAA_3X-fW8D6';
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── State ─────────────────────────────────────
+let state = {
+  session: null,
+  profile: null,
+  settings: null,
+  categories: [],        // all categories for current user
+  currentYm: '',         // 'YYYY-MM'
+  currentTab: 'home',
+  editingTxId: null,
+  editingDebtId: null,
+  editingRecId: null,
+  currentType: 'income',
+  selectedCatId: null,
+  accumEditType: null,
+  catManagerGrp: null,
+  summaryData: null,
+  pinBuffer: '',
+  pinStep: 'verify',     // 'verify' | 'setup1' | 'setup2'
+  pinFirst: '',
+  lockTimer: null,
+  recType: 'income',
+};
+
+// ── PIN Storage (localStorage fallback) ───────
+function storageSet(k, v) { try { localStorage.setItem(k, v); } catch(e){} }
+function storageGet(k)    { try { return localStorage.getItem(k); } catch(e){ return null; } }
+function storageDel(k)    { try { localStorage.removeItem(k); } catch(e){} }
+
+// ── Helpers ───────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmtMoney = n =>
+  (typeof n === 'number' ? n : parseFloat(n) || 0)
+    .toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const todayStr = () => new Date().toISOString().slice(0, 10);
+const nowYm = () => new Date().toISOString().slice(0, 7);
+
+function ymToLabel(ym) {
+  if (!ym) return '';
+  const [y, m] = ym.split('-');
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.',
+                  'ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${months[+m-1]} ${+y+543}`;
+}
+
+function showToast(msg, type='', dur=2500) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.className = '', dur);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+function hideLoading() {
+  const el = $('loading');
+  el.classList.add('hide');
+  setTimeout(() => el.style.display = 'none', 300);
+}
+
+// ── Amount input ──────────────────────────────
+window.amountFocus = el => {
+  el.value = el.value.replace(/,/g, '');
+  requestAnimationFrame(() => el.select());
+};
+window.amountBlur = el => {
+  const n = parseFloat(el.value.replace(/,/g, ''));
+  el.value = isNaN(n) ? '' : fmtMoney(n);
+};
+
+// ── Auth ───────────────────────────────────────
+window.switchAuthTab = tab => {
+  $('form-signin').style.display = tab === 'signin' ? '' : 'none';
+  $('form-signup').style.display = tab === 'signup' ? '' : 'none';
+  $('tab-signin').classList.toggle('active', tab === 'signin');
+  $('tab-signup').classList.toggle('active', tab === 'signup');
+  $('auth-error').className = 'auth-error';
+};
+
+function setAuthLoading(loading) {
+  ['btn-signin','btn-signup'].forEach(id => {
+    const b = $(id);
+    if (b) b.disabled = loading;
+  });
+}
+
+function showAuthError(msg) {
+  const el = $('auth-error');
+  el.textContent = msg;
+  el.className = 'auth-error show';
+}
+
+window.doSignIn = async () => {
+  const email = $('si-email').value.trim();
+  const pass  = $('si-pass').value;
+  if (!email || !pass) return showAuthError('กรุณากรอกอีเมลและรหัสผ่าน');
+  setAuthLoading(true);
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  setAuthLoading(false);
+  if (error) return showAuthError(thaiAuthError(error.message));
+};
+
+window.doSignUp = async () => {
+  const name  = $('su-name').value.trim();
+  const email = $('su-email').value.trim();
+  const pass  = $('su-pass').value;
+  if (!name || !email || !pass) return showAuthError('กรุณากรอกข้อมูลให้ครบ');
+  if (pass.length < 8) return showAuthError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
+  setAuthLoading(true);
+  const { error } = await sb.auth.signUp({
+    email, password: pass,
+    options: { data: { display_name: name } }
+  });
+  setAuthLoading(false);
+  if (error) return showAuthError(thaiAuthError(error.message));
+};
+
+function thaiAuthError(msg) {
+  if (msg.includes('Invalid login')) return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+  if (msg.includes('already registered')) return 'อีเมลนี้ถูกใช้งานแล้ว';
+  if (msg.includes('weak password') || msg.includes('Password')) return 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร';
+  if (msg.includes('rate limit')) return 'ลองใหม่ในอีกสักครู่';
+  return msg;
+}
+
+window.doSignOut = async () => {
+  if (!confirm('ออกจากระบบ?')) return;
+  storageDel('mnc_pin');
+  state.session = null;
+  await sb.auth.signOut();
+  showScreen('screen-auth');
+};
+
+window.pinSignOut = async () => {
+  if (!confirm('ออกจากระบบ?')) return;
+  storageDel('mnc_pin');
+  await sb.auth.signOut();
+  showScreen('screen-auth');
+};
+
+// ── PIN Lock ──────────────────────────────────
+function getPinHash() { return storageGet('mnc_pin'); }
+function hasPIN() { return !!getPinHash(); }
+
+async function hashPIN(pin) {
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.digest('SHA-256', enc.encode('mnc-' + pin));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function showPinScreen(title='ใส่ PIN', sub='4 หลัก เพื่อเข้าใช้งาน') {
+  state.pinBuffer = '';
+  state.pinStep = 'verify';
+  $('pin-title').textContent = title;
+  $('pin-sub').textContent = sub;
+  updatePinDots('pin-dots', 0);
+  showScreen('screen-pin');
+  checkBioAvailable();
+}
+
+function updatePinDots(containerId, count, error=false) {
+  const dots = document.querySelectorAll(`#${containerId} .pin-dot`);
+  dots.forEach((d, i) => {
+    d.classList.remove('filled','error');
+    if (i < count) d.classList.add(error ? 'error' : 'filled');
+  });
+}
+
+window.pinKey = async digit => {
+  if (state.pinBuffer.length >= 4) return;
+  state.pinBuffer += digit;
+  updatePinDots('pin-dots', state.pinBuffer.length);
+  if (state.pinBuffer.length === 4) {
+    await verifyPIN(state.pinBuffer);
+  }
+};
+
+window.pinDel = () => {
+  state.pinBuffer = state.pinBuffer.slice(0, -1);
+  updatePinDots('pin-dots', state.pinBuffer.length);
+};
+
+async function verifyPIN(pin) {
+  const stored = getPinHash();
+  if (!stored) { enterApp(); return; }
+  const h = await hashPIN(pin);
+  if (h === stored) {
+    scheduleLock();
+    enterApp();
+  } else {
+    updatePinDots('pin-dots', 4, true);
+    setTimeout(() => {
+      state.pinBuffer = '';
+      updatePinDots('pin-dots', 0);
+    }, 600);
+    showToast('PIN ไม่ถูกต้อง', 'error');
+  }
+}
+
+async function checkBioAvailable() {
+  try {
+    const ok = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    $('pin-bio-btn').style.display = ok ? '' : 'none';
+  } catch(e) {
+    $('pin-bio-btn').style.display = 'none';
+  }
+}
+
+window.doBioAuth = () => {
+  // Simplified: attempt WebAuthn get; for now use PIN only
+  showToast('ยังไม่รองรับบนอุปกรณ์นี้', '');
+};
+
+function scheduleLock() {
+  clearTimeout(state.lockTimer);
+  state.lockTimer = setTimeout(() => {
+    if (hasPIN()) showPinScreen();
+  }, 60 * 1000); // 60 วินาที
+}
+
+function resetLockTimer() {
+  if (hasPIN()) scheduleLock();
+}
+
+document.addEventListener('touchstart', resetLockTimer, { passive: true });
+
+// ── PIN Setup ─────────────────────────────────
+let pinSetupBuf = '';
+let pinSetupFirst = '';
+let pinSetupStage = 1;
+
+window.openPinSetup = () => {
+  pinSetupBuf = ''; pinSetupFirst = ''; pinSetupStage = 1;
+  $('pin-setup-title').textContent = 'ตั้ง PIN ใหม่';
+  $('pin-setup-step-label').textContent = 'กรอก PIN 4 หลัก';
+  updatePinDots('pin-setup-dots', 0);
+  openModal('modal-pin-setup');
+};
+
+window.pinSetupKey = async digit => {
+  if (pinSetupBuf.length >= 4) return;
+  pinSetupBuf += digit;
+  updatePinDots('pin-setup-dots', pinSetupBuf.length);
+  if (pinSetupBuf.length === 4) {
+    if (pinSetupStage === 1) {
+      pinSetupFirst = pinSetupBuf;
+      pinSetupBuf = '';
+      pinSetupStage = 2;
+      $('pin-setup-step-label').textContent = 'ยืนยัน PIN อีกครั้ง';
+      setTimeout(() => updatePinDots('pin-setup-dots', 0), 300);
+    } else {
+      if (pinSetupBuf === pinSetupFirst) {
+        const h = await hashPIN(pinSetupBuf);
+        storageSet('mnc_pin', h);
+        closeModal('modal-pin-setup');
+        $('pin-status').textContent = 'ตั้ง PIN แล้ว';
+        showToast('ตั้ง PIN เรียบร้อย ✓', 'success');
+        scheduleLock();
+      } else {
+        updatePinDots('pin-setup-dots', 4, true);
+        showToast('PIN ไม่ตรงกัน ลองใหม่', 'error');
+        setTimeout(() => {
+          pinSetupBuf = ''; pinSetupFirst = ''; pinSetupStage = 1;
+          $('pin-setup-step-label').textContent = 'กรอก PIN 4 หลัก';
+          updatePinDots('pin-setup-dots', 0);
+        }, 600);
+      }
+    }
+  }
+};
+
+window.pinSetupDel = () => {
+  pinSetupBuf = pinSetupBuf.slice(0,-1);
+  updatePinDots('pin-setup-dots', pinSetupBuf.length);
+};
+
+// ── Onboarding ────────────────────────────────
+let selectedPreset = null;
+
+window.selectPreset = preset => {
+  selectedPreset = preset;
+  document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.preset-check').forEach(c => c.textContent = '');
+  const card = $('preset-' + preset);
+  card.classList.add('selected');
+  card.querySelector('.preset-check').textContent = '✓';
+  $('btn-onboard').disabled = false;
+};
+
+window.doOnboard = async () => {
+  if (!selectedPreset) return;
+  $('btn-onboard').disabled = true;
+  $('btn-onboard').textContent = 'กำลังตั้งค่า...';
+  const { error } = await sb.rpc('seed_categories', { preset: selectedPreset });
+  if (error) {
+    showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+    $('btn-onboard').disabled = false;
+    $('btn-onboard').textContent = 'เริ่มใช้งาน →';
+    return;
+  }
+  await loadUserData();
+  enterApp();
+};
+
+// ── Main App Entry ────────────────────────────
+async function enterApp() {
+  await loadUserData();
+  if (!state.profile?.onboarded) {
+    showScreen('screen-onboard');
+    return;
+  }
+  state.currentYm = nowYm();
+  updateMonthLabels();
+  renderSettings();
+  await loadMonthData();
+  await loadCategories();
+  await loadRecurring();
+  await loadDebtors();
+  showScreen('screen-app');
+  $('pin-status').textContent = hasPIN() ? 'ตั้ง PIN แล้ว' : 'ยังไม่ได้ตั้ง PIN';
+}
+
+async function loadUserData() {
+  const [profRes, settRes] = await Promise.all([
+    sb.from('profiles').select('*').single(),
+    sb.from('settings').select('*').single(),
+  ]);
+  state.profile  = profRes.data;
+  state.settings = settRes.data;
+}
+
+// ── Month Nav ─────────────────────────────────
+window.changeMonth = dir => {
+  const [y, m] = state.currentYm.split('-').map(Number);
+  const d = new Date(y, m - 1 + dir, 1);
+  state.currentYm = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  updateMonthLabels();
+  loadMonthData();
+  if (state.currentTab === 'history') loadHistoryData();
+  if (state.currentTab === 'summary') loadSummaryTab();
+};
+
+function updateMonthLabels() {
+  const lbl = ymToLabel(state.currentYm);
+  ['month-label','history-month-label','summary-month-label'].forEach(id => {
+    const el = $(id); if (el) el.textContent = lbl;
+  });
+  const d = new Date(state.currentYm + '-01');
+  $('header-sub').textContent = `${d.getFullYear() + 543}`;
+}
+
+// ── Load Month Summary ────────────────────────
+async function loadMonthData() {
+  const { data, error } = await sb.rpc('month_summary', { ym: state.currentYm });
+  if (error || !data || !data[0]) return;
+  const d = data[0];
+  state.summaryData = d;
+  const bal = +d.balance;
+  $('sum-income').textContent  = '฿' + fmtMoney(d.income);
+  $('sum-saving').textContent  = '฿' + fmtMoney(d.saving);
+  $('sum-expense').textContent = '฿' + fmtMoney(d.expense);
+  $('sum-balance').textContent = '฿' + fmtMoney(Math.abs(bal));
+  $('sum-balance').className   = 'card-amount ' + (bal >= 0 ? 'positive' : 'negative');
+  $('header-title').textContent = bal >= 0 ? 'คงเหลือ ฿' + fmtMoney(bal) : 'ขาด ฿' + fmtMoney(Math.abs(bal));
+
+  // accum cards
+  if (state.settings?.coop_enabled || state.settings?.gpf_enabled) {
+    $('accum-row').style.display = '';
+    $('card-coop').style.display = state.settings.coop_enabled ? '' : 'none';
+    $('card-gpf').style.display  = state.settings.gpf_enabled  ? '' : 'none';
+    $('accum-coop').textContent = '฿' + fmtMoney(state.settings.coop_base || 0);
+    $('accum-gpf').textContent  = '฿' + fmtMoney(state.settings.gpf_base  || 0);
+  } else {
+    $('accum-row').style.display = 'none';
+  }
+
+  await loadRecentTx();
+}
+
+// ── Load Recent Tx (home tab) ─────────────────
+async function loadRecentTx() {
+  const { data } = await sb.from('transactions')
+    .select('*, categories(name,grp)')
+    .is('deleted_at', null)
+    .gte('date', state.currentYm + '-01')
+    .lte('date', state.currentYm + '-31')
+    .order('date', { ascending: false })
+    .limit(10);
+
+  const el = $('recent-list');
+  if (!data || !data.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📝</div>
+      <div class="empty-title">ยังไม่มีรายการ</div>
+      <div class="empty-desc">กดปุ่ม + ด้านล่างเพื่อบันทึก</div></div>`;
+    return;
+  }
+  el.innerHTML = data.map(tx => txItemHTML(tx)).join('');
+}
+
+function txItemHTML(tx) {
+  const grp = tx.categories?.grp || 'expense';
+  const name = tx.categories?.name || '?';
+  const sign = grp === 'income' ? '+' : '−';
+  return `<div class="tx-item" onclick="openTxDetail('${tx.id}')">
+    <div class="tx-dot ${grp}"></div>
+    <div class="tx-info">
+      <div class="tx-name">${name}</div>
+      <div class="tx-date">${tx.date}${tx.note ? ' · ' + tx.note : ''}</div>
+    </div>
+    <div class="tx-amount ${grp}">${sign}฿${fmtMoney(tx.amount)}</div>
+  </div>`;
+}
+
+// ── Load History ──────────────────────────────
+async function loadHistoryData() {
+  const { data } = await sb.from('transactions')
+    .select('*, categories(name,grp)')
+    .is('deleted_at', null)
+    .gte('date', state.currentYm + '-01')
+    .lte('date', state.currentYm + '-31')
+    .order('date', { ascending: false });
+
+  const el = $('history-list');
+  if (!data || !data.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div>
+      <div class="empty-title">ไม่มีรายการ</div></div>`;
+    return;
+  }
+  // Group by date
+  const groups = {};
+  data.forEach(tx => {
+    if (!groups[tx.date]) groups[tx.date] = [];
+    groups[tx.date].push(tx);
+  });
+  el.innerHTML = Object.entries(groups).map(([date, txs]) => `
+    <div class="history-group">
+      <div class="history-date-label">${formatDate(date)}</div>
+      <div class="tx-list">${txs.map(tx => txItemHTML(tx)).join('')}</div>
+    </div>
+  `).join('');
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const days = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'];
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.',
+                  'ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${days[d.getDay()]}ที่ ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543}`;
+}
+
+// ── Load Categories ───────────────────────────
+async function loadCategories() {
+  const { data } = await sb.from('categories')
+    .select('*')
+    .is('deleted_at', null)
+    .eq('active', true)
+    .order('sort_order');
+  state.categories = data || [];
+  updateCatCounts();
+  renderCatGrid(state.currentType);
+}
+
+function updateCatCounts() {
+  ['income','saving','expense'].forEach(grp => {
+    const n = state.categories.filter(c => c.grp === grp).length;
+    const el = $('cat-count-' + grp);
+    if (el) el.textContent = n + ' หมวด';
+  });
+}
+
+// ── Categories Grid (record form) ────────────
+window.setType = type => {
+  state.currentType = type;
+  state.selectedCatId = null;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.type-btn.${type}`).classList.add('active');
+  renderCatGrid(type);
+};
+
+function renderCatGrid(type) {
+  const cats = state.categories.filter(c => c.grp === type);
+  const el = $('cat-grid');
+  if (!cats.length) {
+    el.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:16px;color:var(--text2);font-size:13px">
+      ยังไม่มีหมวดหมู่ — ไปที่ตั้งค่าเพื่อเพิ่ม</div>`;
+    return;
+  }
+  el.innerHTML = cats.map(c =>
+    `<div class="cat-chip ${c.id === state.selectedCatId ? 'selected ' + type : ''}"
+      onclick="selectCat('${c.id}','${type}')">${c.name}</div>`
+  ).join('');
+}
+
+window.selectCat = (id, type) => {
+  state.selectedCatId = id;
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('selected','income','saving','expense'));
+  const el = document.querySelector(`.cat-chip[onclick*="${id}"]`);
+  if (el) el.classList.add('selected', type);
+};
+
+// ── Save Record ───────────────────────────────
+window.saveRecord = async () => {
+  const amountRaw = $('rec-amount').value.replace(/,/g, '');
+  const amount = parseFloat(amountRaw);
+  const date   = $('rec-date').value;
+  const note   = $('rec-note').value.trim();
+
+  if (!amount || amount <= 0) return showToast('กรุณาใส่จำนวนเงิน', 'error');
+  if (!state.selectedCatId) return showToast('กรุณาเลือกหมวดหมู่', 'error');
+  if (!date) return showToast('กรุณาเลือกวันที่', 'error');
+
+  const btn = $('btn-save-record');
+  btn.disabled = true;
+
+  const payload = {
+    date, note,
+    category_id: state.selectedCatId,
+    amount: amount,
+    user_id: state.session.user.id,
+  };
+
+  let error;
+  if (state.editingTxId) {
+    ({ error } = await sb.from('transactions').update(payload).eq('id', state.editingTxId));
+  } else {
+    ({ error } = await sb.from('transactions').insert(payload));
+  }
+
+  btn.disabled = false;
+  if (error) return showToast('บันทึกไม่สำเร็จ: ' + error.message, 'error');
+
+  showToast(state.editingTxId ? 'แก้ไขแล้ว ✓' : 'บันทึกแล้ว ✓', 'success');
+  resetRecordForm();
+  await loadMonthData();
+  if (state.currentTab === 'history') await loadHistoryData();
+  state.editingTxId = null;
+};
+
+function resetRecordForm() {
+  $('rec-amount').value = '';
+  $('rec-date').value   = todayStr();
+  $('rec-note').value   = '';
+  state.selectedCatId   = null;
+  state.editingTxId     = null;
+  $('btn-delete-record').style.display = 'none';
+  $('btn-save-record').textContent = '💾 บันทึกรายการ';
+  setType('income');
+}
+
+window.deleteRecord = async () => {
+  if (!state.editingTxId) return;
+  if (!confirm('ลบรายการนี้?')) return;
+  await sb.from('transactions').update({ deleted_at: new Date().toISOString() }).eq('id', state.editingTxId);
+  showToast('ลบแล้ว', 'success');
+  resetRecordForm();
+  await loadMonthData();
+  if (state.currentTab === 'history') await loadHistoryData();
+};
+
+window.openTxDetail = async id => {
+  const { data } = await sb.from('transactions')
+    .select('*, categories(name,grp)')
+    .eq('id', id).single();
+  if (!data) return;
+  const grp = data.categories?.grp || 'expense';
+  const sign = grp === 'income' ? '+' : '−';
+  $('tx-detail-body').innerHTML = `
+    <div style="text-align:center;margin-bottom:20px">
+      <div class="card-amount ${grp}" style="font-size:28px">${sign}฿${fmtMoney(data.amount)}</div>
+      <div style="font-size:16px;font-weight:600;margin-top:8px">${data.categories?.name}</div>
+      <div class="text-muted text-sm mt-8">${formatDate(data.date)}</div>
+      ${data.note ? `<div class="text-muted text-sm mt-8">${data.note}</div>` : ''}
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" style="flex:1" onclick="editTx('${id}')">✏️ แก้ไข</button>
+      <button class="btn btn-danger" style="flex:1" onclick="deleteTxFromDetail('${id}')">🗑 ลบ</button>
+    </div>`;
+  openModal('modal-tx');
+};
+
+window.editTx = async id => {
+  const { data } = await sb.from('transactions')
+    .select('*, categories(name,grp)').eq('id', id).single();
+  if (!data) return;
+  closeModal('modal-tx');
+  state.editingTxId = id;
+  const grp = data.categories?.grp || 'expense';
+  setType(grp);
+  state.selectedCatId = data.category_id;
+  renderCatGrid(grp);
+  $('rec-amount').value = fmtMoney(data.amount);
+  $('rec-date').value   = data.date;
+  $('rec-note').value   = data.note || '';
+  $('btn-save-record').textContent = '💾 บันทึกการแก้ไข';
+  $('btn-delete-record').style.display = '';
+  switchTab('record');
+};
+
+window.deleteTxFromDetail = async id => {
+  if (!confirm('ลบรายการนี้?')) return;
+  await sb.from('transactions').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+  closeModal('modal-tx');
+  showToast('ลบแล้ว', 'success');
+  await loadMonthData();
+  if (state.currentTab === 'history') await loadHistoryData();
+};
+
+// ── Recurring ─────────────────────────────────
+async function loadRecurring() {
+  const { data } = await sb.from('recurring')
+    .select('*, categories(name,grp)')
+    .is('deleted_at', null)
+    .eq('active', true)
+    .order('day');
+  const el = $('recurring-list');
+  if (!data || !data.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🔄</div>
+      <div class="empty-title">ยังไม่มีรายการประจำ</div>
+      <div class="empty-desc">กดปุ่ม + เพื่อเพิ่มรายการที่ทำซ้ำทุกเดือน</div></div>`;
+    return;
+  }
+  el.innerHTML = data.map(r => {
+    const grp = r.categories?.grp || 'expense';
+    const sign = grp === 'income' ? '+' : '−';
+    return `<div class="recurring-item" onclick="openRecurringEdit('${r.id}')">
+      <div class="recurring-day">${r.day}</div>
+      <div class="recurring-info">
+        <div class="recurring-name">${r.categories?.name || '?'}</div>
+        <div class="recurring-meta">ทุกวันที่ ${r.day} · เริ่ม ${r.start_ym}${r.note ? ' · ' + r.note : ''}</div>
+      </div>
+      <div class="recurring-amount tx-amount ${grp}">${sign}฿${fmtMoney(r.amount)}</div>
+    </div>`;
+  }).join('');
+}
+
+window.setRecType = type => {
+  state.recType = type;
+  ['income','saving','expense'].forEach(t => {
+    $('rec-type-' + t).classList.toggle('active', t === type);
+  });
+  // populate cat select
+  const cats = state.categories.filter(c => c.grp === type);
+  $('rec-cat').innerHTML = '<option value="">เลือกหมวด</option>' +
+    cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+};
+
+window.saveRecurring = async () => {
+  const catId = $('rec-cat').value;
+  const amount = parseFloat($('rec-rec-amount').value.replace(/,/g,''));
+  const day  = parseInt($('rec-day').value);
+  const startym = $('rec-startym').value;
+  const note = $('rec-rec-note').value.trim();
+  if (!catId || !amount || !day || !startym)
+    return showToast('กรุณากรอกข้อมูลให้ครบ', 'error');
+
+  const { error } = state.editingRecId
+    ? await sb.from('recurring').update({ category_id:catId, amount, day, start_ym:startym, note })
+        .eq('id', state.editingRecId)
+    : await sb.from('recurring').insert({
+        category_id:catId, amount, day, start_ym:startym, note,
+        user_id: state.session.user.id
+      });
+
+  if (error) return showToast('บันทึกไม่สำเร็จ', 'error');
+  closeModal('modal-recurring');
+  showToast('บันทึกแล้ว ✓', 'success');
+  state.editingRecId = null;
+  await loadRecurring();
+};
+
+window.openRecurringEdit = async id => {
+  // open for edit (future)
+  openModal('modal-recurring');
+};
+
+// ── Debtors ───────────────────────────────────
+async function loadDebtors() {
+  const { data } = await sb.from('debtors')
+    .select('*').is('deleted_at', null).order('date', { ascending: false });
+  const el = $('debtor-list');
+  if (!data || !data.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🤝</div>
+      <div class="empty-title">ไม่มีลูกหนี้</div>
+      <div class="empty-desc">กดปุ่ม + เพื่อบันทึกการให้ยืมเงิน</div></div>`;
+    return;
+  }
+  el.innerHTML = data.map(d => `
+    <div class="debtor-item${d.paid ? ' paid' : ''}" onclick="openDebtorEdit('${d.id}')">
+      <div class="debtor-row">
+        <div class="debtor-name">${d.name}</div>
+        <div class="debtor-amount${d.paid ? ' paid' : ''}">฿${fmtMoney(d.amount)}</div>
+      </div>
+      <div class="debtor-meta">${formatDate(d.date)}${d.note ? ' · ' + d.note : ''}</div>
+      <span class="debtor-badge ${d.paid ? 'paid' : 'unpaid'}">
+        ${d.paid ? '✅ คืนแล้ว' : '⏳ ยังไม่ได้คืน'}
+      </span>
+    </div>
+  `).join('');
+}
+
+window.openDebtorEdit = async id => {
+  state.editingDebtId = id;
+  const { data } = await sb.from('debtors').select('*').eq('id', id).single();
+  if (!data) return;
+  $('debt-name').value = data.name;
+  $('debt-amount').value = fmtMoney(data.amount);
+  $('debt-date').value = data.date;
+  $('debt-note').value = data.note || '';
+  $('debtor-sheet-title').textContent = 'แก้ไขลูกหนี้';
+  $('btn-paid').style.display = data.paid ? 'none' : '';
+  openModal('modal-debtor');
+};
+
+window.saveDebtor = async () => {
+  const name = $('debt-name').value.trim();
+  const amount = parseFloat($('debt-amount').value.replace(/,/g,''));
+  const date = $('debt-date').value;
+  const note = $('debt-note').value.trim();
+  if (!name || !amount || !date) return showToast('กรุณากรอกข้อมูลให้ครบ', 'error');
+
+  const { error } = state.editingDebtId
+    ? await sb.from('debtors').update({ name, amount, date, note }).eq('id', state.editingDebtId)
+    : await sb.from('debtors').insert({ name, amount, date, note, user_id: state.session.user.id });
+
+  if (error) return showToast('บันทึกไม่สำเร็จ', 'error');
+  closeModal('modal-debtor');
+  showToast('บันทึกแล้ว ✓', 'success');
+  state.editingDebtId = null;
+  await loadDebtors();
+};
+
+window.markDebtorPaid = async () => {
+  if (!state.editingDebtId) return;
+  await sb.from('debtors').update({ paid: true }).eq('id', state.editingDebtId);
+  closeModal('modal-debtor');
+  showToast('บันทึกว่าคืนแล้ว ✓', 'success');
+  state.editingDebtId = null;
+  await loadDebtors();
+};
+
+// ── Summary Tab ────────────────────────────────
+async function loadSummaryTab() {
+  const { data } = await sb.rpc('month_summary', { ym: state.currentYm });
+  if (!data || !data[0]) return;
+  const d = data[0];
+  const bal = +d.balance;
+  $('sumtab-income').textContent  = '฿' + fmtMoney(d.income);
+  $('sumtab-saving').textContent  = '฿' + fmtMoney(d.saving);
+  $('sumtab-expense').textContent = '฿' + fmtMoney(d.expense);
+  $('sumtab-balance').textContent = (bal >= 0 ? '+' : '−') + '฿' + fmtMoney(Math.abs(bal));
+  $('sumtab-balance').className   = 'card-amount ' + (bal >= 0 ? 'positive' : 'negative');
+
+  // Expense breakdown by category
+  const { data: cats } = await sb.from('transactions')
+    .select('amount, categories(name,grp)')
+    .is('deleted_at', null)
+    .gte('date', state.currentYm + '-01')
+    .lte('date', state.currentYm + '-31');
+
+  if (!cats) return;
+  const byName = {};
+  cats.filter(t => t.categories?.grp === 'expense').forEach(t => {
+    const n = t.categories.name;
+    byName[n] = (byName[n] || 0) + +t.amount;
+  });
+  const sorted = Object.entries(byName).sort((a,b) => b[1]-a[1]);
+  const total = sorted.reduce((s,[,v]) => s+v, 0) || 1;
+  $('expense-breakdown').innerHTML = sorted.map(([n,v]) => `
+    <div class="summary-bar-wrap">
+      <div class="bar-label">
+        <span>${n}</span>
+        <span class="text-muted">฿${fmtMoney(v)}</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${(v/total*100).toFixed(1)}%;background:var(--expense)"></div>
+      </div>
+    </div>`).join('') || '<p class="text-muted text-sm text-center" style="padding:16px">ไม่มีรายจ่ายเดือนนี้</p>';
+}
+
+// ── Export CSV ────────────────────────────────
+window.exportCSV = async () => {
+  showToast('กำลัง Export...', '', 3000);
+  const { data } = await sb.from('transactions')
+    .select('date, amount, note, categories(name,grp)')
+    .is('deleted_at', null)
+    .order('date', { ascending: true });
+  if (!data) return;
+  const rows = [['วันที่','ประเภท','หมวดหมู่','จำนวนเงิน','หมายเหตุ']];
+  data.forEach(t => {
+    const grpLabel = {income:'รายรับ',saving:'เงินออม',expense:'รายจ่าย'}[t.categories?.grp] || '';
+    rows.push([t.date, grpLabel, t.categories?.name||'', t.amount, t.note||'']);
+  });
+  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `MoneyNC_${state.currentYm}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Export เรียบร้อย ✓', 'success');
+};
+
+// ── Category Manager ──────────────────────────
+window.openCatManager = grp => {
+  state.catManagerGrp = grp;
+  const labels = { income:'รายรับ', saving:'เงินออม', expense:'รายจ่าย' };
+  $('catmgr-title').textContent = 'จัดการหมวด · ' + labels[grp];
+  renderCatManagerList(grp);
+  openModal('modal-catmanager');
+};
+
+function renderCatManagerList(grp) {
+  const cats = state.categories.filter(c => c.grp === grp);
+  $('catmgr-list').innerHTML = cats.length
+    ? cats.map(c => `
+      <div class="cat-manage-item">
+        ${c.role ? '<span class="cat-locked" title="ใช้ในการคำนวณ">🔒</span>' : '<span style="width:20px"></span>'}
+        <span class="cat-manage-name">${c.name}</span>
+        <div class="cat-manage-actions">
+          ${!c.role ? `<button class="cat-action-btn" onclick="deleteCategory('${c.id}')" title="ลบ">🗑</button>` : ''}
+        </div>
+      </div>`).join('')
+    : '<p class="text-muted text-sm text-center" style="padding:16px">ยังไม่มีหมวดหมู่</p>';
+}
+
+window.addCategory = async () => {
+  const name = $('catmgr-input').value.trim();
+  if (!name) return;
+  const grp = state.catManagerGrp;
+  const maxOrder = Math.max(0, ...state.categories.filter(c=>c.grp===grp).map(c=>c.sort_order));
+  const { error } = await sb.from('categories').insert({
+    grp, name, sort_order: maxOrder + 1,
+    user_id: state.session.user.id
+  });
+  if (error) {
+    showToast(error.message.includes('unique') ? 'มีชื่อนี้แล้ว' : 'เกิดข้อผิดพลาด', 'error');
+    return;
+  }
+  $('catmgr-input').value = '';
+  await loadCategories();
+  renderCatManagerList(grp);
+  showToast('เพิ่มแล้ว ✓', 'success');
+};
+
+window.deleteCategory = async id => {
+  const cat = state.categories.find(c=>c.id===id);
+  if (!cat || cat.role) return showToast('หมวดนี้ลบไม่ได้', 'error');
+  if (!confirm(`ลบ "${cat.name}"?`)) return;
+  const { error } = await sb.from('categories')
+    .update({ deleted_at: new Date().toISOString() }).eq('id', id);
+  if (error) return showToast('ลบไม่สำเร็จ', 'error');
+  await loadCategories();
+  renderCatManagerList(state.catManagerGrp);
+  showToast('ลบแล้ว', 'success');
+};
+
+// ── Settings ──────────────────────────────────
+function renderSettings() {
+  const u = state.session?.user;
+  const p = state.profile;
+  if (u) {
+    $('settings-email').textContent = u.email || '—';
+    $('settings-name').textContent  = p?.display_name || u.user_metadata?.display_name || u.email?.split('@')[0] || 'ผู้ใช้';
+  }
+  if (state.settings) {
+    $('toggle-gpf').checked  = !!state.settings.gpf_enabled;
+    $('toggle-coop').checked = !!state.settings.coop_enabled;
+    $('gpf-rate-label').textContent = (state.settings.gpf_rate * 100).toFixed(0) + '%';
+    const hasSpecial = state.settings.gpf_enabled || state.settings.coop_enabled
+      || state.categories.some(c => c.role);
+    $('settings-calc').style.display = hasSpecial ? '' : 'none';
+  }
+  $('pin-status').textContent = hasPIN() ? 'ตั้ง PIN แล้ว · แตะเพื่อเปลี่ยน' : 'ยังไม่ได้ตั้ง PIN';
+}
+
+window.saveSettingToggle = async (field, val) => {
+  await sb.from('settings').update({ [field]: val }).eq('user_id', state.session.user.id);
+  state.settings[field] = val;
+  await loadMonthData();
+  renderSettings();
+};
+
+window.openProfileSheet = () => showToast('โปรไฟล์ (coming soon)', '');
+window.openNotifSheet = () => showToast('การแจ้งเตือน (coming soon)', '');
+window.clearCache = async () => {
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+  }
+  showToast('ล้างแคชแล้ว — กำลังโหลดใหม่', 'success', 1500);
+  setTimeout(() => location.reload(), 1500);
+};
+
+// ── Accum Cards ───────────────────────────────
+window.editAccumBase = type => {
+  state.accumEditType = type;
+  const label = type === 'coop' ? 'ยอดตั้งต้นหุ้นสหกรณ์' : 'ยอดตั้งต้น กบข.';
+  $('accum-title').textContent = label;
+  const cur = state.settings?.[type === 'coop' ? 'coop_base' : 'gpf_base'] || 0;
+  $('accum-input').value = fmtMoney(cur);
+  openModal('modal-accum');
+};
+
+window.saveAccumBase = async () => {
+  const val = parseFloat($('accum-input').value.replace(/,/g,'')) || 0;
+  const field = state.accumEditType === 'coop' ? 'coop_base' : 'gpf_base';
+  await sb.from('settings').update({ [field]: val }).eq('user_id', state.session.user.id);
+  state.settings[field] = val;
+  closeModal('modal-accum');
+  await loadMonthData();
+  showToast('บันทึกแล้ว ✓', 'success');
+};
+
+// ── FAB ───────────────────────────────────────
+window.openFab = () => {
+  const tab = state.currentTab;
+  if (tab === 'home' || tab === 'record' || tab === 'history') {
+    if (state.currentTab !== 'record') switchTab('record');
+    resetRecordForm();
+    $('rec-date').value = todayStr();
+  } else if (tab === 'debtors') {
+    state.editingDebtId = null;
+    $('debtor-sheet-title').textContent = 'เพิ่มลูกหนี้';
+    $('debt-name').value = $('debt-amount').value = $('debt-note').value = '';
+    $('debt-date').value = todayStr();
+    $('btn-paid').style.display = 'none';
+    openModal('modal-debtor');
+  } else if (tab === 'recurring') {
+    state.editingRecId = null;
+    $('rec-rec-amount').value = $('rec-rec-note').value = '';
+    $('rec-day').value = new Date().getDate();
+    $('rec-startym').value = nowYm();
+    setRecType('income');
+    openModal('modal-recurring');
+  }
+};
+
+// ── Tab Switcher ──────────────────────────────
+window.switchTab = tab => {
+  state.currentTab = tab;
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(i => i.classList.remove('active'));
+  $('panel-' + tab)?.classList.add('active');
+  $('tab-' + tab)?.classList.add('active');
+
+  const tabTitles = {
+    home:'เดือนนี้', record:'บันทึก', history:'ประวัติ',
+    recurring:'รายการประจำ', debtors:'ลูกหนี้', summary:'สรุป', settings:'ตั้งค่า'
+  };
+  $('header-title').textContent = tabTitles[tab] || 'MoneyNC';
+
+  // FAB visibility
+  $('fab-btn').style.display = ['settings','summary'].includes(tab) ? 'none' : '';
+
+  if (tab === 'history') loadHistoryData();
+  if (tab === 'summary') loadSummaryTab();
+  if (tab === 'record')  { $('rec-date').value = $('rec-date').value || todayStr(); renderCatGrid(state.currentType); }
+  if (tab === 'settings') renderSettings();
+  if (tab === 'debtors') loadDebtors();
+};
+
+// ── Modal Helpers ─────────────────────────────
+window.openModal = id => {
+  $(id).classList.add('show');
+  document.body.style.overflow = 'hidden';
+};
+window.closeModal = id => {
+  $(id).classList.remove('show');
+  document.body.style.overflow = '';
+};
+window.closeModalIf = (e, id) => {
+  if (e.target.id === id) closeModal(id);
+};
+
+// ── Auth State Listener ───────────────────────
+sb.auth.onAuthStateChange(async (event, session) => {
+  state.session = session;
+
+  if (!session) {
+    hideLoading();
+    showScreen('screen-auth');
+    return;
+  }
+
+  if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+    // Check PIN
+    if (hasPIN() && event === 'INITIAL_SESSION') {
+      hideLoading();
+      showPinScreen();
+      // After PIN unlock -> enterApp called inside verifyPIN
+      return;
+    }
+    hideLoading();
+    await enterApp();
+  }
+});
+
+// ── Init ──────────────────────────────────────
+(async () => {
+  // If no session after 5s, show auth
+  setTimeout(() => {
+    if ($('loading').style.display !== 'none' && !$('loading').classList.contains('hide')) {
+      hideLoading();
+      showScreen('screen-auth');
+    }
+  }, 5000);
+})();
+
+// Expose state for debugging
+window._state = state;
+</script>
+
+</body>
+</html>
