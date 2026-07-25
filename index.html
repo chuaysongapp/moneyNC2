@@ -2616,12 +2616,17 @@ window.saveSettingToggle = async (field, val) => {
 window.openProfileSheet = () => showToast('โปรไฟล์ (coming soon)', '');
 window.openNotifSheet = () => showToast('การแจ้งเตือน (coming soon)', '');
 window.clearCache = async () => {
+  // ส่งคำสั่งให้ SW ล้าง cache
+  if (navigator.serviceWorker?.controller) {
+    navigator.serviceWorker.controller.postMessage('CLEAR_CACHE');
+  }
+  // ล้าง cache ฝั่ง client ด้วย
   if ('caches' in window) {
     const keys = await caches.keys();
     await Promise.all(keys.map(k => caches.delete(k)));
   }
   showToast('ล้างแคชแล้ว — กำลังโหลดใหม่', 'success', 1500);
-  setTimeout(() => location.reload(), 1500);
+  setTimeout(() => location.reload(true), 1500);
 };
 
 // ── Accum Cards ───────────────────────────────
@@ -2783,13 +2788,45 @@ sb.auth.onAuthStateChange(async (event, session) => {
 
 // ── Init ──────────────────────────────────────
 (async () => {
-  // If no session after 5s, show auth
+  // Register Service Worker + บังคับอัปเดตทันที
+  if ('serviceWorker' in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.register('./sw.js');
+
+      // ถ้ามี SW ใหม่รอ activate → บังคับใช้งานทันที
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing;
+        newSW?.addEventListener('statechange', () => {
+          if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+            // SW ใหม่พร้อมแล้ว — ส่ง SKIP_WAITING แล้ว reload
+            newSW.postMessage('SKIP_WAITING');
+          }
+        });
+      });
+
+      // ถ้า SW เพิ่ง activate (controllerchange) → reload หน้าเพื่อโหลด JS ใหม่
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+
+      // บังคับเช็คอัปเดตทุกครั้งที่เปิดแอป
+      reg.update();
+    } catch(e) {
+      console.warn('SW registration failed:', e);
+    }
+  }
+
+  // Timeout fallback — ถ้าโหลดนานเกิน 6 วิ ให้แสดง auth
   setTimeout(() => {
-    if ($('loading').style.display !== 'none' && !$('loading').classList.contains('hide')) {
+    if (!$('loading').classList.contains('hide')) {
       hideLoading();
       showScreen('screen-auth');
     }
-  }, 5000);
+  }, 6000);
 })();
 
 // Expose state for debugging

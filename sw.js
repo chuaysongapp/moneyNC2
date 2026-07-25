@@ -1,33 +1,46 @@
-// MoneyNC Service Worker v11 — Supabase Edition
-const CACHE = 'money-nc-v11';
+// MoneyNC Service Worker v12 — Force update
+const CACHE = 'money-nc-v12';
 const STATIC = [
   './',
   './index.html',
   './manifest.json',
 ];
 
-// ── Install ────────────────────────────────────
+// ── Install — ข้ามรอทันที ─────────────────────
 self.addEventListener('install', e => {
+  self.skipWaiting(); // ✅ บังคับใช้งานทันที ไม่รอ tab เก่าปิด
   e.waitUntil(
     caches.open(CACHE).then(c => c.addAll(STATIC))
-      .then(() => self.skipWaiting())
   );
 });
 
-// ── Activate ───────────────────────────────────
+// ── Activate — ลบ cache เก่าทั้งหมด ───────────
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+      Promise.all(keys.filter(k => k !== CACHE).map(k => {
+        console.log('[SW] Deleting old cache:', k);
+        return caches.delete(k);
+      }))
+    ).then(() => self.clients.claim()) // ✅ ควบคุม client ทันที
   );
+});
+
+// ── Message — รับคำสั่งล้าง cache จากแอป ──────
+self.addEventListener('message', e => {
+  if (e.data === 'SKIP_WAITING') self.skipWaiting();
+  if (e.data === 'CLEAR_CACHE') {
+    caches.keys().then(keys =>
+      Promise.all(keys.map(k => caches.delete(k)))
+    );
+  }
 });
 
 // ── Fetch Strategy ────────────────────────────
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Supabase API & esm.sh → Network only (อย่า cache)
+  // Supabase API & CDN → Network only
   if (
     url.hostname.includes('supabase.co') ||
     url.hostname === 'esm.sh' ||
@@ -69,7 +82,7 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// ── Push Notifications (เผื่อใช้ภายหลัง) ────────
+// ── Push Notifications ────────────────────────
 self.addEventListener('push', e => {
   const data = e.data?.json() || { title: 'MoneyNC', body: 'มีการแจ้งเตือนใหม่' };
   e.waitUntil(
