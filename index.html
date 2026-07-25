@@ -2006,7 +2006,9 @@ function scheduleLock() {
   clearTimeout(state.lockTimer);
   state.lockTimer = setTimeout(() => {
     if (hasPIN()) {
-      _waitingForPin = true;  // ✅ ตั้ง flag ก่อนโชว์ PIN
+      // ✅ เคลียร์ unlock flag ก่อน → เปิดแอปครั้งถัดไปต้อง PIN ใหม่
+      sessionStorage.removeItem('mnc_unlocked');
+      setAppState('pin');
       showPinScreen();
     }
   }, 60 * 1000); // 60 วินาที
@@ -2898,12 +2900,20 @@ window.closeModalIf = (e, id) => {
 };
 
 // ── Auth State Listener ───────────────────────
-// ใช้ appState machine กัน race condition
+// appState รีเซ็ตทุกครั้งที่เปิดแอป (JS variable)
+// ใช้ sessionStorage เก็บ 'unlocked' flag แทน
 // states: 'loading' | 'pin' | 'app' | 'auth'
 let appState = 'loading';
 
 function setAppState(s) {
   appState = s;
+  if (s === 'app') sessionStorage.setItem('mnc_unlocked', '1');
+  if (s === 'auth') sessionStorage.removeItem('mnc_unlocked');
+}
+
+// ตรวจว่า unlock แล้วในรอบนี้ (session tab) หรือยัง
+function isUnlockedThisSession() {
+  return sessionStorage.getItem('mnc_unlocked') === '1';
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {
@@ -2956,8 +2966,10 @@ sb.auth.onAuthStateChange(async (event, session) => {
 
   // INITIAL_SESSION = session ค้าง → เช็ค PIN
   if (event === 'INITIAL_SESSION') {
-    // ถ้าอยู่ใน pin หรือ app แล้ว → ไม่ทำอะไรเด็ดขาด
+    // ถ้าอยู่ใน pin หรือ app แล้วในรอบนี้ → ไม่ทำอะไร
     if (appState === 'pin' || appState === 'app') return;
+    // ถ้า unlock แล้วในรอบนี้ (TOKEN_REFRESHED หลัง unlock) → ไม่ต้อง PIN ซ้ำ
+    if (isUnlockedThisSession() && appState !== 'loading') return;
 
     // ✅ โหลด settings ให้เสร็จก่อน แล้วค่อย hideLoading + เช็ค PIN
     // ถ้า hideLoading ก่อน → แอปแสดงผลขณะ settings ยังโหลดไม่เสร็จ
@@ -2994,7 +3006,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
 
 // afterPinSuccess — เรียกจาก verifyPIN เมื่อ PIN ถูกต้อง
 async function afterPinSuccess() {
-  setAppState('app');
+  setAppState('app'); // ← เซ็ต sessionStorage('mnc_unlocked','1') ด้วย
   scheduleLock();
   state.pinBuffer = '';
   updatePinDots('pin-dots', 0);
