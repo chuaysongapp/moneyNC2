@@ -2959,15 +2959,27 @@ sb.auth.onAuthStateChange(async (event, session) => {
     // ถ้าอยู่ใน pin หรือ app แล้ว → ไม่ทำอะไรเด็ดขาด
     if (appState === 'pin' || appState === 'app') return;
 
+    // ✅ โหลด settings ให้เสร็จก่อน แล้วค่อย hideLoading + เช็ค PIN
+    // ถ้า hideLoading ก่อน → แอปแสดงผลขณะ settings ยังโหลดไม่เสร็จ
+    try {
+      const { data, error } = await sb.from('settings')
+        .select('pin_hash, gpf_enabled, coop_enabled, gpf_rate, gpf_base, coop_base, currency_decimals')
+        .eq('user_id', session.user.id)
+        .single();
+      if (!error && data) {
+        state.settings = data;
+        console.log('[MoneyNC] pin_hash:', data.pin_hash ? 'EXISTS('+data.pin_hash.slice(0,8)+'...)' : 'NULL');
+      }
+    } catch(e) {
+      console.warn('[MoneyNC] settings error:', e.message);
+    }
+
+    const pinExists = hasPIN();
+    console.log('[MoneyNC] hasPIN:', pinExists);
+
     hideLoading();
 
-    // ✅ โหลด settings ก่อนเสมอ เพื่อให้ได้ pin_hash จาก Supabase
-    try {
-      const { data } = await sb.from('settings').select('*').single();
-      state.settings = data;
-    } catch(e) { /* ไม่มี settings ยังไม่เป็นไร */ }
-
-    if (hasPIN()) {
+    if (pinExists) {
       setAppState('pin');
       showPinScreen();
     } else {
