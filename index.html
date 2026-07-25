@@ -1068,6 +1068,11 @@ input, select, textarea, button {
         <button class="btn btn-primary" id="btn-signin" onclick="doSignIn()">
           <span>เข้าสู่ระบบ</span>
         </button>
+        <div style="text-align:center;margin-top:14px">
+          <button class="pin-link" onclick="doForgotPassword()" style="color:var(--text2)">
+            ลืมรหัสผ่าน?
+          </button>
+        </div>
       </div>
 
       <!-- Sign Up -->
@@ -1176,7 +1181,7 @@ input, select, textarea, button {
     <div class="app-header">
       <div>
         <div class="header-title" id="header-title">เดือนนี้</div>
-        <div class="header-sub" id="header-sub">กำลังโหลด...</div>
+        <div class="header-sub" id="header-sub"></div>
       </div>
       <div class="header-actions">
         <button class="icon-btn" onclick="openNotifSheet()" title="การแจ้งเตือน">🔔</button>
@@ -1219,12 +1224,12 @@ input, select, textarea, button {
           <div class="accum-card" id="card-coop" onclick="editAccumBase('coop')">
             <div class="accum-label">หุ้นสหกรณ์</div>
             <div class="accum-amount" id="accum-coop">฿0.00</div>
-            <div class="accum-hint">แตะเพื่อแก้ยอดตั้งต้น</div>
+            <div class="accum-hint">✎ แตะเพื่อตั้งยอด</div>
           </div>
           <div class="accum-card" id="card-gpf" onclick="editAccumBase('gpf')">
             <div class="accum-label">กบข.</div>
             <div class="accum-amount" id="accum-gpf">฿0.00</div>
-            <div class="accum-hint">แตะเพื่อแก้ยอดตั้งต้น</div>
+            <div class="accum-hint">✎ แตะเพื่อตั้งยอด</div>
           </div>
         </div>
 
@@ -1815,6 +1820,30 @@ function thaiAuthError(msg) {
   return msg;
 }
 
+window.doForgotPassword = async () => {
+  const email = $('si-email').value.trim();
+  if (!email) {
+    // ถ้ายังไม่ได้กรอกอีเมล ให้ขอก่อน
+    showAuthError('กรุณากรอกอีเมลของคุณก่อน แล้วกด "ลืมรหัสผ่าน?" อีกครั้ง');
+    $('si-email').focus();
+    return;
+  }
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname,
+  });
+  if (error) {
+    showAuthError('ส่งอีเมลไม่สำเร็จ: ' + error.message);
+    return;
+  }
+  // ซ่อน error และแสดง success แทน
+  const errEl = $('auth-error');
+  errEl.style.background = 'rgba(34,211,160,.1)';
+  errEl.style.borderColor = 'rgba(34,211,160,.3)';
+  errEl.style.color = 'var(--income)';
+  errEl.textContent = `ส่งลิงก์ reset รหัสผ่านไปที่ ${email} แล้ว — เช็คอีเมลได้เลยครับ`;
+  errEl.className = 'auth-error show';
+};
+
 window.doSignOut = async () => {
   if (!confirm('ออกจากระบบ?')) return;
   storageDel('mnc_pin');
@@ -2037,8 +2066,11 @@ function updateMonthLabels() {
   ['month-label','history-month-label','summary-month-label'].forEach(id => {
     const el = $(id); if (el) el.textContent = lbl;
   });
-  const d = new Date(state.currentYm + '-01');
-  $('header-sub').textContent = `${d.getFullYear() + 543}`;
+  // แสดงปีใต้ header เฉพาะตอนอยู่แท็บ home
+  if (state.currentTab === 'home') {
+    const d = new Date(state.currentYm + '-01');
+    $('header-sub').textContent = `พ.ศ. ${d.getFullYear() + 543}`;
+  }
 }
 
 // ── Load Month Summary ────────────────────────
@@ -2092,7 +2124,8 @@ async function loadRecentTx() {
 function txItemHTML(tx) {
   const grp = tx.categories?.grp || 'expense';
   const name = tx.categories?.name || '?';
-  const sign = grp === 'income' ? '+' : '−';
+  // income = + (สีเขียว), saving = ไม่มี sign (สีน้ำเงิน), expense = − (สีแดง)
+  const sign = grp === 'income' ? '+' : grp === 'expense' ? '−' : '';
   return `<div class="tx-item" onclick="openTxDetail('${tx.id}')">
     <div class="tx-dot ${grp}"></div>
     <div class="tx-info">
@@ -2255,7 +2288,7 @@ window.openTxDetail = async id => {
     .eq('id', id).single();
   if (!data) return;
   const grp = data.categories?.grp || 'expense';
-  const sign = grp === 'income' ? '+' : '−';
+  const sign = grp === 'income' ? '+' : grp === 'expense' ? '−' : '';
   $('tx-detail-body').innerHTML = `
     <div style="text-align:center;margin-bottom:20px">
       <div class="card-amount ${grp}" style="font-size:28px">${sign}฿${fmtMoney(data.amount)}</div>
@@ -2313,7 +2346,7 @@ async function loadRecurring() {
   }
   el.innerHTML = data.map(r => {
     const grp = r.categories?.grp || 'expense';
-    const sign = grp === 'income' ? '+' : '−';
+    const sign = grp === 'income' ? '+' : grp === 'expense' ? '−' : '';
     return `<div class="recurring-item" onclick="openRecurringEdit('${r.id}')">
       <div class="recurring-day">${r.day}</div>
       <div class="recurring-info">
@@ -2640,6 +2673,12 @@ window.switchTab = tab => {
     recurring:'รายการประจำ', debtors:'ลูกหนี้', summary:'สรุป', settings:'ตั้งค่า'
   };
   $('header-title').textContent = tabTitles[tab] || 'MoneyNC';
+  // แสดงปีเฉพาะแท็บ home ที่เหลือล้างออก
+  if (tab !== 'home') {
+    $('header-sub').textContent = '';
+  } else {
+    updateMonthLabels();
+  }
 
   // FAB visibility
   $('fab-btn').style.display = ['settings','summary'].includes(tab) ? 'none' : '';
@@ -2668,6 +2707,38 @@ window.closeModalIf = (e, id) => {
 sb.auth.onAuthStateChange(async (event, session) => {
   state.session = session;
 
+  // กรณีคลิกลิงก์ reset password จากอีเมล
+  if (event === 'PASSWORD_RECOVERY') {
+    hideLoading();
+    showScreen('screen-auth');
+    // แสดง UI ตั้งรหัสผ่านใหม่
+    switchAuthTab('signin');
+    const errEl = $('auth-error');
+    errEl.style.background = 'rgba(245,158,11,.1)';
+    errEl.style.borderColor = 'rgba(245,158,11,.3)';
+    errEl.style.color = 'var(--accent)';
+    errEl.textContent = 'กรุณาตั้งรหัสผ่านใหม่ด้านล่าง';
+    errEl.className = 'auth-error show';
+    // เปลี่ยนปุ่มเข้าสู่ระบบเป็น "บันทึกรหัสผ่านใหม่"
+    $('si-pass').placeholder = 'รหัสผ่านใหม่ (8+ ตัว)';
+    const btn = $('btn-signin');
+    btn.textContent = '🔐 บันทึกรหัสผ่านใหม่';
+    btn.onclick = async () => {
+      const newPass = $('si-pass').value;
+      if (newPass.length < 8) return showAuthError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
+      const { error } = await sb.auth.updateUser({ password: newPass });
+      if (error) return showAuthError('บันทึกไม่สำเร็จ: ' + error.message);
+      showToast('ตั้งรหัสผ่านใหม่เรียบร้อย ✓', 'success');
+      // reset UI กลับปกติ
+      btn.textContent = 'เข้าสู่ระบบ';
+      btn.onclick = doSignIn;
+      $('si-pass').placeholder = '••••••••';
+      errEl.className = 'auth-error';
+      await enterApp();
+    };
+    return;
+  }
+
   if (!session) {
     hideLoading();
     showScreen('screen-auth');
@@ -2679,7 +2750,6 @@ sb.auth.onAuthStateChange(async (event, session) => {
     if (hasPIN() && event === 'INITIAL_SESSION') {
       hideLoading();
       showPinScreen();
-      // After PIN unlock -> enterApp called inside verifyPIN
       return;
     }
     hideLoading();
