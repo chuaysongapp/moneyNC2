@@ -1883,7 +1883,7 @@ window.doForgotPassword = async () => {
 
 window.doSignOut = async () => {
   if (!confirm('ออกจากระบบ?')) return;
-  storageDel('mnc_pin');
+  await deletePinHash();
   state.session = null;
   await sb.auth.signOut();
   showScreen('screen-auth');
@@ -1891,19 +1891,52 @@ window.doSignOut = async () => {
 
 window.pinSignOut = async () => {
   if (!confirm('ออกจากระบบ?')) return;
-  storageDel('mnc_pin');
+  await deletePinHash();
   await sb.auth.signOut();
   showScreen('screen-auth');
 };
 
-// ── PIN Lock ──────────────────────────────────
-function getPinHash() { return storageGet('mnc_pin'); }
+// ── PIN Lock — เก็บใน Supabase settings (ไม่ใช้ localStorage) ──
+// pin_hash เก็บใน state.settings.pin_hash โหลดตอน loadUserData()
+
+function getPinHash() {
+  // ลอง Supabase ก่อน → fallback localStorage (migration เก่า)
+  return state.settings?.pin_hash || storageGet('mnc_pin') || null;
+}
 function hasPIN() { return !!getPinHash(); }
 
 async function hashPIN(pin) {
   const enc = new TextEncoder();
   const buf = await crypto.subtle.digest('SHA-256', enc.encode('mnc-' + pin));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function savePinHash(hash) {
+  // บันทึกลง Supabase settings
+  if (state.session?.user?.id) {
+    const { error } = await sb.from('settings')
+      .update({ pin_hash: hash })
+      .eq('user_id', state.session.user.id);
+    if (!error) {
+      state.settings.pin_hash = hash;
+      // ลบ localStorage เก่าออก (migration)
+      storageDel('mnc_pin');
+      return true;
+    }
+  }
+  // fallback localStorage ถ้า Supabase ไม่ได้
+  storageSet('mnc_pin', hash);
+  return false;
+}
+
+async function deletePinHash() {
+  if (state.session?.user?.id) {
+    await sb.from('settings')
+      .update({ pin_hash: null })
+      .eq('user_id', state.session.user.id);
+    if (state.settings) state.settings.pin_hash = null;
+  }
+  storageDel('mnc_pin');
 }
 
 function showPinScreen(title='ใส่ PIN', sub='4 หลัก เพื่อเข้าใช้งาน') {
@@ -2012,7 +2045,7 @@ window.pinSetupKey = async digit => {
     } else {
       if (pinSetupBuf === pinSetupFirst) {
         const h = await hashPIN(pinSetupBuf);
-        storageSet('mnc_pin', h);
+        await savePinHash(h);  // ✅ บันทึกลง Supabase
         closeModal('modal-pin-setup');
         $('pin-status').textContent = 'ตั้ง PIN แล้ว';
         showToast('ตั้ง PIN เรียบร้อย ✓', 'success');
@@ -2928,9 +2961,13 @@ sb.auth.onAuthStateChange(async (event, session) => {
 
     hideLoading();
 
+    // ✅ โหลด settings ก่อนเสมอ เพื่อให้ได้ pin_hash จาก Supabase
+    try {
+      const { data } = await sb.from('settings').select('*').single();
+      state.settings = data;
+    } catch(e) { /* ไม่มี settings ยังไม่เป็นไร */ }
+
     if (hasPIN()) {
-      // ✅ set 'pin' ก่อนแสดงหน้า PIN
-      // enterApp จะถูกเรียกใน afterPinSuccess() เท่านั้น
       setAppState('pin');
       showPinScreen();
     } else {
