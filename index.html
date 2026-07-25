@@ -1903,11 +1903,15 @@ window.pinDel = () => {
 
 async function verifyPIN(pin) {
   const stored = getPinHash();
+  // ถ้าไม่มี PIN เก็บไว้ → เข้าแอปได้เลย (ไม่ควรเกิดขึ้นแต่ safety net)
   if (!stored) { enterApp(); return; }
   const h = await hashPIN(pin);
   if (h === stored) {
     scheduleLock();
-    enterApp();
+    // ✅ เคลียร์ buffer ก่อนเข้าแอป
+    state.pinBuffer = '';
+    updatePinDots('pin-dots', 0);
+    await enterApp();
   } else {
     updatePinDots('pin-dots', 4, true);
     setTimeout(() => {
@@ -1935,7 +1939,10 @@ window.doBioAuth = () => {
 function scheduleLock() {
   clearTimeout(state.lockTimer);
   state.lockTimer = setTimeout(() => {
-    if (hasPIN()) showPinScreen();
+    if (hasPIN()) {
+      _waitingForPin = true;  // ✅ ตั้ง flag ก่อนโชว์ PIN
+      showPinScreen();
+    }
   }, 60 * 1000); // 60 วินาที
 }
 
@@ -2020,7 +2027,8 @@ window.doOnboard = async () => {
     return;
   }
   await loadUserData();
-  enterApp();
+  _waitingForPin = false;
+  await enterApp();
 };
 
 // ── Main App Entry ────────────────────────────
@@ -2704,6 +2712,9 @@ window.closeModalIf = (e, id) => {
 };
 
 // ── Auth State Listener ───────────────────────
+// flag: ป้องกัน enterApp ถูกเรียกซ้ำระหว่างรอ PIN
+let _waitingForPin = false;
+
 sb.auth.onAuthStateChange(async (event, session) => {
   state.session = session;
 
@@ -2711,7 +2722,6 @@ sb.auth.onAuthStateChange(async (event, session) => {
   if (event === 'PASSWORD_RECOVERY') {
     hideLoading();
     showScreen('screen-auth');
-    // แสดง UI ตั้งรหัสผ่านใหม่
     switchAuthTab('signin');
     const errEl = $('auth-error');
     errEl.style.background = 'rgba(245,158,11,.1)';
@@ -2719,7 +2729,6 @@ sb.auth.onAuthStateChange(async (event, session) => {
     errEl.style.color = 'var(--accent)';
     errEl.textContent = 'กรุณาตั้งรหัสผ่านใหม่ด้านล่าง';
     errEl.className = 'auth-error show';
-    // เปลี่ยนปุ่มเข้าสู่ระบบเป็น "บันทึกรหัสผ่านใหม่"
     $('si-pass').placeholder = 'รหัสผ่านใหม่ (8+ ตัว)';
     const btn = $('btn-signin');
     btn.textContent = '🔐 บันทึกรหัสผ่านใหม่';
@@ -2729,31 +2738,46 @@ sb.auth.onAuthStateChange(async (event, session) => {
       const { error } = await sb.auth.updateUser({ password: newPass });
       if (error) return showAuthError('บันทึกไม่สำเร็จ: ' + error.message);
       showToast('ตั้งรหัสผ่านใหม่เรียบร้อย ✓', 'success');
-      // reset UI กลับปกติ
       btn.textContent = 'เข้าสู่ระบบ';
       btn.onclick = doSignIn;
       $('si-pass').placeholder = '••••••••';
       errEl.className = 'auth-error';
+      _waitingForPin = false;
       await enterApp();
     };
     return;
   }
 
   if (!session) {
+    _waitingForPin = false;
     hideLoading();
     showScreen('screen-auth');
     return;
   }
 
-  if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-    // Check PIN
-    if (hasPIN() && event === 'INITIAL_SESSION') {
-      hideLoading();
-      showPinScreen();
-      return;
-    }
+  if (event === 'SIGNED_IN') {
+    // ล็อกอินใหม่สด — ไม่ต้องถาม PIN (เพิ่งยืนยันตัวตนด้วย password แล้ว)
+    _waitingForPin = false;
     hideLoading();
     await enterApp();
+    return;
+  }
+
+  if (event === 'INITIAL_SESSION') {
+    // session ค้างจากครั้งก่อน → ตรวจ PIN ก่อน
+    if (hasPIN() && !_waitingForPin) {
+      _waitingForPin = true;   // ✅ ตั้ง flag ก่อน — กัน enterApp จาก event อื่น
+      hideLoading();
+      showPinScreen();
+      // enterApp จะถูกเรียกใน verifyPIN() เมื่อ PIN ถูก
+    } else if (!hasPIN()) {
+      // ไม่มี PIN → เข้าแอปได้เลย
+      _waitingForPin = false;
+      hideLoading();
+      await enterApp();
+    }
+    // ถ้า _waitingForPin = true อยู่แล้ว = กำลังรอ PIN อยู่ → ไม่ทำอะไร
+    return;
   }
 });
 
